@@ -58,27 +58,33 @@
 
     <div class="checkout-container">
         <section class="cart-section">
-            <div class="scan-indicator">
-                <div class="scan-dot"></div> Scanner Active: Ready to scan barcode...
-            </div>
-            
-            <h1 style="margin: 0 0 20px 0;">Current Cart</h1>
-            
-            <table class="cart-table">
-                <thead>
-                    <tr>
-                        <th>Item</th>
-                        <th>Price</th>
-                        <th>Qty</th>
-                        <th>Total</th>
-                        <th></th>
-                    </tr>
-                </thead>
-                <tbody id="cart-body">
-                    </tbody>
-            </table>
-        </section>
-
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <div class="scan-indicator">
+            <div class="scan-dot"></div> Scanner Active
+        </div>
+        
+        <div style="display: flex; gap: 10px;">
+            <input type="text" id="manual-barcode" placeholder="Type Barcode & Press Enter" 
+                   style="padding: 10px 15px; border-radius: 10px; border: 1px solid #e2e8f0; width: 250px; outline: none; font-weight: 600;">
+            <button onclick="manualSearch()" class="btn-main" style="padding: 10px 20px; font-size: 14px;">Add</button>
+        </div>
+    </div>
+    
+    <h1 style="margin: 0 0 20px 0;">Current Cart</h1>
+    
+    <table class="cart-table">
+        <thead>
+            <tr>
+                <th>Item</th>
+                <th>Price</th>
+                <th>Qty</th>
+                <th>Total</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody id="cart-body"></tbody>
+    </table>
+</section>
         <section class="summary-section">
             <div class="summary-title">Summary</div>
             
@@ -111,32 +117,60 @@
         const _s = supabase.createClient(u, k);
 
         let cart = [];
-        let paymentMethod = 'Cash';
-        let barcodeBuffer = "";
+    let barcodeBuffer = "";
+    let lastKeyTime = Date.now();
 
-        // 1. LISTEN FOR BARCODE SCANNER (Global listener)
-        window.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter') {
-                if (barcodeBuffer.length > 2) {
-                    processBarcode(barcodeBuffer);
-                    barcodeBuffer = "";
-                }
+    // 1. IMPROVED SCANNER LISTENER
+    window.addEventListener('keydown', (e) => {
+        const currentTime = Date.now();
+        
+        // If the user is typing in the manual input box, don't use the global listener
+        if (document.activeElement.id === 'manual-barcode') return;
+
+        if (e.key === 'Enter') {
+            if (barcodeBuffer.length > 2) {
+                processBarcode(barcodeBuffer);
+                barcodeBuffer = "";
+            }
+        } else {
+            // If typing is very fast (scanner speed), keep adding to buffer
+            if (currentTime - lastKeyTime > 50) {
+                barcodeBuffer = e.key; // Reset if slow typing
             } else {
                 barcodeBuffer += e.key;
             }
-            // Clear buffer if user is typing manually elsewhere
-            setTimeout(() => { barcodeBuffer = ""; }, 200);
-        });
-
-        async function processBarcode(code) {
-            const { data, error } = await _s.from('pos_products').select('*').eq('barcode', code).single();
-            if (data) {
-                addToCart(data);
-            } else {
-                console.log("Product not found: " + code);
-            }
         }
+        lastKeyTime = currentTime;
+    });
 
+    // 2. MANUAL SEARCH FUNCTION
+    function manualSearch() {
+        const input = document.getElementById('manual-barcode');
+        if (input.value.length > 0) {
+            processBarcode(input.value);
+            input.value = ""; // Clear after adding
+        }
+    }
+
+    // Also trigger manual search on "Enter" inside the input box
+    document.getElementById('manual-barcode').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') manualSearch();
+    });
+
+    async function processBarcode(code) {
+        // Find product in Supabase
+        const { data, error } = await _s.from('pos_products')
+            .select('*')
+            .eq('barcode', code.trim())
+            .single();
+
+        if (data) {
+            addToCart(data);
+            log(`Added: ${data.name}`); // Optional: add a small log function
+        } else {
+            alert("Product Not Found: " + code);
+        }
+    }
         function addToCart(product) {
             const existing = cart.find(item => item.barcode === product.barcode);
             if (existing) {
