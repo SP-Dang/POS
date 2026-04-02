@@ -138,21 +138,57 @@
         }
 
         function drawCart() {
-            const body = document.getElementById('cart-body');
-            if (cart.length === 0) { body.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:50px; color:#94a3b8;">Empty Cart</td></tr>'; updateTotals(0); return; }
-            body.innerHTML = cart.map((item, idx) => `
-                <tr>
-                    <td><div class="item-name">${item.name}</div><div style="font-size:10px; color:#94a3b8;">${item.barcode}</div></td>
-                    <td class="item-price">${formatLAK(item.retail_price)}</td>
-                    <td style="text-align:center;">${item.qty}</td>
-                    <td class="item-total">${formatLAK(item.retail_price * item.qty)}</td>
-                    <td style="text-align:right;"><button onclick="remItem(${idx})" style="border:none; background:none; cursor:pointer;">✕</button></td>
-                </tr>
-            `).join('');
-            const sum = cart.reduce((s, i) => s + (i.retail_price * i.qty), 0);
-            updateTotals(sum);
-        }
+    const body = document.getElementById('cart-body');
+    if (cart.length === 0) { 
+        body.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:50px; color:#94a3b8;">Empty Cart</td></tr>'; 
+        updateTotals(0); 
+        return; 
+    }
 
+    body.innerHTML = cart.map((item, idx) => `
+        <tr>
+            <td>
+                <div class="item-name">${item.name}</div>
+                <div style="font-size:10px; color:#94a3b8;">${item.barcode}</div>
+            </td>
+            <td class="item-price">${formatLAK(item.retail_price)}</td>
+            <td style="text-align:center;">
+                <div style="display:flex; align-items:center; justify-content:center; gap:10px;">
+                    <button class="qty-btn" onclick="adjQty(${idx}, -1)" style="width:28px; height:28px; border-radius:6px; border:1px solid #e2e8f0; background:white; cursor:pointer; font-weight:bold;">-</button>
+                    
+                    <span style="font-size:13px; font-weight:600; min-width:25px;">${item.qty}</span>
+                    
+                    <button class="qty-btn" onclick="adjQty(${idx}, 1)" style="width:28px; height:28px; border-radius:6px; border:1px solid #e2e8f0; background:white; cursor:pointer; font-weight:bold;">+</button>
+                </div>
+            </td>
+            <td class="item-total">${formatLAK(item.retail_price * item.qty)}</td>
+            <td style="text-align:right;">
+                <button onclick="remItem(${idx})" style="border:none; background:none; cursor:pointer; color:#ef4444; font-size:16px;">✕</button>
+            </td>
+        </tr>
+    `).join('');
+
+    const sum = cart.reduce((s, i) => s + (i.retail_price * i.qty), 0);
+    updateTotals(sum);
+}
+
+// 2. NEW: Function to handle the + and - clicks
+function adjQty(index, amount) {
+    cart[index].qty += amount;
+    
+    // If quantity hits 0, remove the item automatically
+    if (cart[index].qty <= 0) {
+        cart.splice(index, 1);
+    }
+    
+    drawCart(); // Redraw the table to show changes
+}
+
+// 3. Keep the remove function
+function remItem(i) { 
+    cart.splice(i, 1); 
+    drawCart(); 
+}
         function updateTotals(total) { document.getElementById('grand-total').innerText = formatLAK(total); }
         function remItem(i) { cart.splice(i, 1); drawCart(); }
         function setPay(m, b) { payMethod = m; document.querySelectorAll('.pay-btn').forEach(x => x.classList.remove('active')); b.classList.add('active'); }
