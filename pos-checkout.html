@@ -9,238 +9,226 @@
     <style>
         :root {
             --primary: #10b981; --sidebar: #0f172a; --bg: #f8fafc;
-            --card: #ffffff; --text: #1e293b; --accent: #6366f1;
+            --card: #ffffff; --text: #1e293b; --text-muted: #94a3b8;
         }
         * { box-sizing: border-box; font-family: 'Plus Jakarta Sans', sans-serif; }
         body { margin: 0; display: flex; background: var(--bg); color: var(--text); height: 100vh; overflow: hidden; }
 
         /* Sidebar Nav */
         .sidebar { width: 260px; background: var(--sidebar); color: white; padding: 30px 20px; display: flex; flex-direction: column; }
-        .logo { font-weight: 800; font-size: 22px; color: var(--primary); margin-bottom: 40px; }
-        .nav-item { padding: 14px 18px; border-radius: 12px; color: #94a3b8; text-decoration: none; margin-bottom: 8px; font-weight: 600; display: flex; align-items: center; gap: 12px; }
+        .logo { font-weight: 800; font-size: 22px; color: var(--primary); margin-bottom: 40px; text-decoration: none; }
+        .nav-item { padding: 14px 18px; border-radius: 12px; color: #94a3b8; text-decoration: none; margin-bottom: 8px; font-weight: 600; display: flex; align-items: center; gap: 12px; transition: 0.2s; }
+        .nav-item:hover { background: rgba(255,255,255,0.05); color: white; }
         .nav-item.active { background: var(--primary); color: white; }
 
-        /* Main Checkout Layout */
-        .checkout-container { flex: 1; display: grid; grid-template-columns: 1fr 400px; height: 100vh; }
+        /* Layout */
+        .checkout-container { flex: 1; display: grid; grid-template-columns: 1fr 420px; height: 100vh; }
         
-        /* Left Side: Cart & Scanning */
-        .cart-section { padding: 40px; overflow-y: auto; background: var(--bg); }
-        .scan-indicator { background: #dcfce7; color: #166534; padding: 10px 20px; border-radius: 30px; font-size: 13px; font-weight: 700; display: inline-flex; align-items: center; gap: 8px; margin-bottom: 20px; }
-        .scan-dot { width: 8px; height: 8px; background: #10b981; border-radius: 50%; animation: blink 1s infinite; }
-        @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; } }
+        /* Left: Cart */
+        .cart-section { padding: 30px; overflow-y: auto; background: var(--bg); }
+        .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; }
+        
+        .scan-indicator { background: #dcfce7; color: #166534; padding: 8px 16px; border-radius: 30px; font-size: 12px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+        .scan-dot { width: 8px; height: 8px; background: var(--primary); border-radius: 50%; animation: blink 1.5s infinite; }
+        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
 
-        .cart-table { width: 100%; border-collapse: collapse; background: white; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); }
-        .cart-table th { background: #f1f5f9; padding: 15px; text-align: left; font-size: 12px; text-transform: uppercase; color: #64748b; }
-        .cart-table td { padding: 20px 15px; border-bottom: 1px solid #f1f5f9; }
+        .search-box { padding: 10px 15px; border-radius: 10px; border: 1px solid #e2e8f0; width: 220px; outline: none; font-size: 14px; transition: 0.2s; }
+        .search-box:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1); }
 
-        /* Right Side: Payment Summary */
+        /* Cart Table Styling */
+        .cart-table { width: 100%; border-collapse: collapse; background: white; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.03); }
+        .cart-table th { background: #f8fafc; padding: 15px; text-align: left; font-size: 11px; text-transform: uppercase; color: var(--text-muted); letter-spacing: 0.5px; }
+        .cart-table td { padding: 12px 15px; border-bottom: 1px solid #f1f5f9; }
+
+        /* Compact Typography Fixes */
+        .item-name { font-size: 13px; font-weight: 700; color: var(--text); margin: 0; max-width: 160px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .item-barcode { font-size: 10px; color: var(--text-muted); font-family: monospace; }
+        .item-price, .item-total { font-size: 13px; font-weight: 600; text-align: right; }
+        .item-total { font-weight: 800; color: var(--sidebar); }
+
+        .qty-controls { display: flex; align-items: center; gap: 8px; background: #f8fafc; padding: 4px 8px; border-radius: 8px; width: fit-content; }
+        .qty-btn { background: white; border: 1px solid #e2e8f0; width: 24px; height: 24px; border-radius: 5px; cursor: pointer; font-weight: bold; display: flex; align-items: center; justify-content: center; }
+
+        /* Right: Summary */
         .summary-section { background: white; border-left: 1px solid #e2e8f0; padding: 40px; display: flex; flex-direction: column; }
-        .summary-title { font-size: 24px; font-weight: 800; margin-bottom: 30px; }
-        
-        .payment-toggle { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 30px; }
-        .pay-btn { border: 2px solid #e2e8f0; padding: 15px; border-radius: 12px; cursor: pointer; text-align: center; font-weight: 700; transition: 0.2s; background: none; }
+        .payment-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 20px 0; }
+        .pay-btn { border: 2px solid #f1f5f9; padding: 15px; border-radius: 12px; cursor: pointer; text-align: center; font-weight: 700; background: white; transition: 0.2s; color: var(--text-light); }
         .pay-btn.active { border-color: var(--primary); background: #f0fff4; color: var(--primary); }
 
-        .total-box { background: var(--sidebar); color: white; padding: 30px; border-radius: 20px; margin-top: auto; }
-        .btn-checkout { width: 100%; background: var(--primary); color: white; border: none; padding: 20px; border-radius: 16px; font-size: 18px; font-weight: 800; margin-top: 20px; cursor: pointer; transition: 0.3s; }
-        .btn-checkout:hover { transform: translateY(-3px); box-shadow: 0 10px 20px rgba(16, 185, 129, 0.3); }
-
-        .qty-btn { background: #f1f5f9; border: none; width: 25px; height: 25px; border-radius: 6px; cursor: pointer; font-weight: bold; }
+        .total-card { background: var(--sidebar); color: white; padding: 25px; border-radius: 20px; margin-top: auto; }
+        .btn-complete { width: 100%; background: var(--primary); color: white; border: none; padding: 20px; border-radius: 16px; font-size: 18px; font-weight: 800; margin-top: 20px; cursor: pointer; transition: 0.3s; }
+        .btn-complete:hover { transform: translateY(-3px); box-shadow: 0 10px 20px rgba(16, 185, 129, 0.3); }
     </style>
 </head>
 <body>
 
- <nav class="sidebar">
-    <div class="logo">mPOS</div>
-    <a href="pos-inventory.html" class="nav-item">📦 Inventory</a> <a href="pos-checkout.html" class="nav-item active">🛒 Checkout</a>
-    <a href="#" class="nav-item">📊 Reports</a>
-</nav>
+    <nav class="sidebar">
+        <div class="logo">LSM ELITE</div>
+        <a href="pos-inventory.html" class="nav-item">📦 Inventory</a>
+        <a href="pos-checkout.html" class="nav-item active">🛒 Checkout</a>
+        <a href="#" class="nav-item">📊 Reports</a>
+    </nav>
 
     <div class="checkout-container">
         <section class="cart-section">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-        <div class="scan-indicator">
-            <div class="scan-dot"></div> Scanner Active
-        </div>
-        
-        <div style="display: flex; gap: 10px;">
-            <input type="text" id="manual-barcode" placeholder="Type Barcode & Press Enter" 
-                   style="padding: 10px 15px; border-radius: 10px; border: 1px solid #e2e8f0; width: 250px; outline: none; font-weight: 600;">
-            <button onclick="manualSearch()" class="btn-main" style="padding: 10px 20px; font-size: 14px;">Add</button>
-        </div>
-    </div>
-    
-    <h1 style="margin: 0 0 20px 0;">Current Cart</h1>
-    
-    <table class="cart-table">
-        <thead>
-            <tr>
-                <th>Item</th>
-                <th>Price</th>
-                <th>Qty</th>
-                <th>Total</th>
-                <th></th>
-            </tr>
-        </thead>
-        <tbody id="cart-body"></tbody>
-    </table>
-</section>
-        <section class="summary-section">
-            <div class="summary-title">Summary</div>
+            <div class="top-bar">
+                <div class="scan-indicator"><div class="scan-dot"></div> Scanner Ready</div>
+                <input type="text" id="manual-input" class="search-box" placeholder="Type Barcode + Enter">
+            </div>
             
-            <p style="color: #64748b; font-size: 14px; margin-bottom: 10px;">Select Payment Method</p>
-            <div class="payment-toggle">
-                <button class="pay-btn active" onclick="setPayment('Cash', this)">Cash</button>
-                <button class="pay-btn" onclick="setPayment('QR Code', this)">QR Code</button>
-                <button class="pay-btn" onclick="setPayment('Credit', this)">Credit</button>
-                <button class="pay-btn" onclick="setPayment('Transfer', this)">Transfer</button>
+            <h1 style="margin: 0 0 20px 0; font-size: 24px;">Current Cart</h1>
+            
+            <table class="cart-table">
+                <thead>
+                    <tr>
+                        <th>Product</th>
+                        <th style="text-align:right">Price</th>
+                        <th style="text-align:center">Qty</th>
+                        <th style="text-align:right">Total</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody id="cart-body">
+                    </tbody>
+            </table>
+        </section>
+
+        <section class="summary-section">
+            <h2 style="margin:0">Payment</h2>
+            <p style="color:var(--text-muted); font-size:14px;">Select transaction type</p>
+            
+            <div class="payment-grid">
+                <button class="pay-btn active" onclick="setPay('Cash', this)">Cash</button>
+                <button class="pay-btn" onclick="setPay('QR / Transfer', this)">QR Code</button>
+                <button class="pay-btn" onclick="setPay('Credit Card', this)">Credit</button>
+                <button class="pay-btn" onclick="setPay('Other', this)">Other</button>
             </div>
 
-            <div class="total-box">
-                <div style="display:flex; justify-content:space-between; opacity: 0.7; margin-bottom: 10px;">
-                    <span>Subtotal</span>
+            <div class="total-card">
+                <div style="display:flex; justify-content:space-between; opacity:0.6; font-size:14px; margin-bottom:8px;">
+                    <span>Items Total</span>
                     <span id="subtotal">₭0</span>
                 </div>
-                <div style="display:flex; justify-content:space-between; font-size: 24px; font-weight: 800;">
-                    <span>Total</span>
+                <div style="display:flex; justify-content:space-between; font-size:24px; font-weight:800;">
+                    <span>Grand Total</span>
                     <span id="grand-total">₭0</span>
                 </div>
             </div>
             
-            <button class="btn-checkout" onclick="completeSale()">Complete Sale</button>
+            <button class="btn-complete" onclick="finishOrder()">Complete Sale</button>
         </section>
     </div>
 
     <script>
+        // --- SUPABASE CONFIG ---
         const u = "https://zddelixvencundnkccpq.supabase.co"; 
         const k = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpkZGVsaXh2ZW5jdW5kbmtjY3BxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUxMjQ1MzMsImV4cCI6MjA5MDcwMDUzM30.-RPvOYMLzftubrpJ4KSVrqL2eNaopjty30_TrnkGpBo";
         const _s = supabase.createClient(u, k);
 
         let cart = [];
-    let barcodeBuffer = "";
-    let lastKeyTime = Date.now();
+        let payMethod = "Cash";
+        let barcodeBuffer = "";
+        let lastKeyTime = Date.now();
 
-    // 1. IMPROVED SCANNER LISTENER
-    window.addEventListener('keydown', (e) => {
-        const currentTime = Date.now();
-        
-        // If the user is typing in the manual input box, don't use the global listener
-        if (document.activeElement.id === 'manual-barcode') return;
+        const formatLAK = (n) => new Intl.NumberFormat('lo-LA', { style: 'currency', currency: 'LAK' }).format(n);
 
-        if (e.key === 'Enter') {
-            if (barcodeBuffer.length > 2) {
-                processBarcode(barcodeBuffer);
-                barcodeBuffer = "";
-            }
-        } else {
-            // If typing is very fast (scanner speed), keep adding to buffer
-            if (currentTime - lastKeyTime > 50) {
-                barcodeBuffer = e.key; // Reset if slow typing
+        // 1. Barcode Logic (Scanner & Manual)
+        window.addEventListener('keydown', (e) => {
+            if (document.activeElement.id === 'manual-input') return;
+            const now = Date.now();
+            if (e.key === 'Enter') {
+                if (barcodeBuffer.length > 1) { lookupItem(barcodeBuffer); barcodeBuffer = ""; }
             } else {
-                barcodeBuffer += e.key;
+                if (now - lastKeyTime > 100) barcodeBuffer = e.key;
+                else barcodeBuffer += e.key;
             }
-        }
-        lastKeyTime = currentTime;
-    });
+            lastKeyTime = now;
+        });
 
-    // 2. MANUAL SEARCH FUNCTION
-    function manualSearch() {
-        const input = document.getElementById('manual-barcode');
-        if (input.value.length > 0) {
-            processBarcode(input.value);
-            input.value = ""; // Clear after adding
-        }
-    }
+        document.getElementById('manual-input').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') { lookupItem(e.target.value); e.target.value = ""; }
+        });
 
-    // Also trigger manual search on "Enter" inside the input box
-    document.getElementById('manual-barcode').addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') manualSearch();
-    });
-
-    async function processBarcode(code) {
-        // Find product in Supabase
-        const { data, error } = await _s.from('pos_products')
-            .select('*')
-            .eq('barcode', code.trim())
-            .single();
-
-        if (data) {
-            addToCart(data);
-            log(`Added: ${data.name}`); // Optional: add a small log function
-        } else {
-            alert("Product Not Found: " + code);
-        }
-    }
-        function addToCart(product) {
-            const existing = cart.find(item => item.barcode === product.barcode);
-            if (existing) {
-                existing.qty += 1;
-            } else {
-                cart.push({ ...product, qty: 1 });
-            }
-            renderCart();
+        async function lookupItem(code) {
+            const { data, error } = await _s.from('pos_products').select('*').eq('barcode', code.trim()).single();
+            if (data) addItem(data);
+            else alert("Product #" + code + " not found.");
         }
 
-        const formatLAK = (val) => new Intl.NumberFormat('lo-LA', { style: 'currency', currency: 'LAK' }).format(val);
+        function addItem(p) {
+            const exists = cart.find(i => i.barcode === p.barcode);
+            if (exists) exists.qty++;
+            else cart.push({ ...p, qty: 1 });
+            drawCart();
+        }
 
-        function renderCart() {
+        // 2. UI Rendering
+        function drawCart() {
             const body = document.getElementById('cart-body');
+            if (cart.length === 0) {
+                body.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:50px; color:#94a3b8;">Empty Cart</td></tr>';
+                updateTotals(0);
+                return;
+            }
+
             body.innerHTML = cart.map((item, idx) => `
                 <tr>
                     <td>
-                        <div style="font-weight:700;">${item.name}</div>
-                        <div style="font-size:11px; color:#64748b;">${item.barcode}</div>
+                        <div class="item-name">${item.name}</div>
+                        <div class="item-barcode">${item.barcode}</div>
                     </td>
-                    <td>${formatLAK(item.retail_price)}</td>
+                    <td class="item-price">${formatLAK(item.retail_price)}</td>
                     <td>
-                        <button class="qty-btn" onclick="updateQty(${idx}, -1)">-</button>
-                        <span style="margin:0 10px; font-weight:700;">${item.qty}</span>
-                        <button class="qty-btn" onclick="updateQty(${idx}, 1)">+</button>
+                        <div class="qty-controls" style="margin:auto">
+                            <button class="qty-btn" onclick="adjQty(${idx}, -1)">-</button>
+                            <span style="font-weight:700; width:20px; text-align:center">${item.qty}</span>
+                            <button class="qty-btn" onclick="adjQty(${idx}, 1)">+</button>
+                        </div>
                     </td>
-                    <td style="font-weight:800;">${formatLAK(item.retail_price * item.qty)}</td>
-                    <td><button onclick="removeItem(${idx})" style="border:none; background:none; cursor:pointer;">🗑️</button></td>
+                    <td class="item-total">${formatLAK(item.retail_price * item.qty)}</td>
+                    <td style="text-align:right">
+                        <button onclick="remItem(${idx})" style="border:none; background:none; cursor:pointer; color:#94a3b8;">✕</button>
+                    </td>
                 </tr>
             `).join('');
             
-            calculateTotals();
+            const sum = cart.reduce((s, i) => s + (i.retail_price * i.qty), 0);
+            updateTotals(sum);
         }
 
-        function calculateTotals() {
-            const total = cart.reduce((sum, item) => sum + (item.retail_price * item.qty), 0);
+        function updateTotals(total) {
             document.getElementById('subtotal').innerText = formatLAK(total);
             document.getElementById('grand-total').innerText = formatLAK(total);
         }
 
-        function setPayment(method, btn) {
-            paymentMethod = method;
-            document.querySelectorAll('.pay-btn').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
+        function adjQty(i, d) {
+            cart[i].qty += d;
+            if (cart[i].qty <= 0) cart.splice(i, 1);
+            drawCart();
         }
 
-        async function completeSale() {
-            if (cart.length === 0) return alert("Cart is empty!");
+        function remItem(i) { cart.splice(i, 1); drawCart(); }
 
-            // 1. Log the transaction (Supabase)
-            // 2. Reduce stock levels
+        function setPay(m, b) {
+            payMethod = m;
+            document.querySelectorAll('.pay-btn').forEach(x => x.classList.remove('active'));
+            b.classList.add('active');
+        }
+
+        async function finishOrder() {
+            if (cart.length === 0) return;
+            
+            // Deduct stock in Supabase
             for (let item of cart) {
-                await _s.rpc('decrement_stock', { x: item.qty, row_id: item.id });
+                await _s.rpc('decrement_stock', { row_id: item.id, x: item.qty });
             }
 
-            alert("Sale Completed! Payment: " + paymentMethod);
+            alert(`Order Success!\nTotal: ${document.getElementById('grand-total').innerText}\nMethod: ${payMethod}`);
             cart = [];
-            renderCart();
+            drawCart();
         }
 
-        function updateQty(idx, delta) {
-            cart[idx].qty += delta;
-            if (cart[idx].qty <= 0) cart.splice(idx, 1);
-            renderCart();
-        }
-
-        function removeItem(idx) {
-            cart.splice(idx, 1);
-            renderCart();
-        }
+        drawCart();
     </script>
 </body>
 </html>
