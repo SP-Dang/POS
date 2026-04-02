@@ -2,90 +2,178 @@
 <html lang="en"><head>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/papaparse/5.3.2/papaparse.min.js"></script>
-    <meta charset="UTF-8"><title>LSM POS - INVENTORY</title>
+    <meta charset="UTF-8"><title>LSM POS - INVENTORY ELITE</title>
     <style>
-        body { font-family: sans-serif; background: #f4f4f9; padding: 20px; }
-        .log { background: #333; color: #00ff00; padding: 10px; font-family: monospace; font-size: 12px; margin-bottom: 20px; border-radius: 5px; min-height: 40px; }
-        .upload-area { border: 3px dashed #27ae60; background: white; padding: 40px; text-align: center; cursor: pointer; border-radius: 15px; }
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; background: white; }
-        th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
-        th { background: #2d3436; color: white; }
+        :root { --primary: #27ae60; --danger: #e74c3c; --dark: #1a1a1a; --gray: #2d3436; }
+        body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; margin: 0; padding: 20px; }
+        .container { max-width: 1100px; margin: 0 auto; }
+        
+        /* Elite Function: Low-Stock Pulse Widget */
+        .pulse-card { 
+            background: white; padding: 20px; border-radius: 12px; display: flex; 
+            align-items: center; justify-content: space-between; margin-bottom: 20px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05); border-left: 8px solid #ddd;
+            transition: 0.3s;
+        }
+        .pulse-active { border-left-color: var(--danger); animation: glow 1.5s infinite; }
+        @keyframes glow { 
+            0% { box-shadow: 0 0 5px rgba(231, 76, 60, 0.2); } 
+            50% { box-shadow: 0 0 20px rgba(231, 76, 60, 0.6); } 
+            100% { box-shadow: 0 0 5px rgba(231, 76, 60, 0.2); } 
+        }
+
+        /* Bulk Upload Area */
+        .upload-zone {
+            background: #fff; border: 2px dashed #ccc; padding: 30px; text-align: center;
+            border-radius: 12px; margin-bottom: 20px; cursor: pointer; transition: 0.3s;
+        }
+        .upload-zone:hover { border-color: var(--primary); background: #f9fffb; }
+
+        /* Table Styling */
+        table { width: 100%; border-collapse: collapse; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,0.03); }
+        th { background: var(--dark); color: white; padding: 15px; text-align: left; font-size: 13px; text-transform: uppercase; }
+        td { padding: 15px; border-bottom: 1px solid #eee; font-size: 14px; color: #333; }
+        .stock-low { color: var(--danger); font-weight: bold; background: #fff5f5; }
+        
+        .btn { padding: 10px 20px; border-radius: 6px; border: none; font-weight: bold; cursor: pointer; transition: 0.2s; }
+        .btn-add { background: var(--primary); color: white; }
+        .btn-add:hover { background: #219150; }
+        code { background: #eee; padding: 2px 5px; border-radius: 4px; font-family: monospace; }
     </style>
 </head><body>
 
-    <div id="debug-log" class="log">System Status: Waiting for file...</div>
-
-    <div class="upload-area" id="drop-zone">
-        <h2>Click here to upload Product CSV</h2>
-        <p>Required columns: <b>Barcode, Name, Category, Price, Qty, MinQty</b></p>
-        <input type="file" id="file-input" style="display:none" accept=".csv">
+<div class="container">
+    <div style="display:flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+        <h1 style="color: var(--dark);">📦 Inventory Master</h1>
+        <div>
+            <a href="pos-main.html" style="text-decoration:none; color:#666; margin-right:15px; font-size:14px;">⬅️ Back to POS</a>
+            <button class="btn btn-add" onclick="document.getElementById('file-input').click()">+ Bulk Upload CSV</button>
+        </div>
     </div>
 
-    <table id="inventory-table">
+    <div id="stock-pulse" class="pulse-card">
+        <div>
+            <h2 id="low-count-text" style="margin:0; font-size: 18px;">Analyzing Inventory...</h2>
+            <p style="color:#666; margin:5px 0 0; font-size: 13px;">Real-time stock level monitoring</p>
+        </div>
+        <div id="pulse-icon" style="font-size: 30px;">⏳</div>
+    </div>
+
+    <input type="file" id="file-input" hidden accept=".csv">
+
+    <div class="upload-zone" id="drop-zone">
+        <h3 style="margin:0; color: var(--gray);">Quick Import Products</h3>
+        <p style="color:#888; font-size: 12px;">Drag CSV here or click to browse. <br>Required Headers: <b>Barcode, Name, Category, Price, Qty, MinQty</b></p>
+    </div>
+
+    <table>
         <thead>
-            <tr><th>Barcode</th><th>Name</th><th>Stock</th><th>Price</th></tr>
+            <tr>
+                <th>Barcode</th>
+                <th>Product Name</th>
+                <th>Category</th>
+                <th>Retail Price</th>
+                <th>Current Stock</th>
+                <th>Min Level</th>
+            </tr>
         </thead>
-        <tbody></tbody>
+        <tbody id="inventory-body">
+            </tbody>
     </table>
+</div>
 
 <script>
-    // MATCHED KEYS
-    const u = "https://zddelixvencundnkccpq.supabase.co"; 
-    const k = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpkZGVsaXh2ZW5jdW5kbmtjY3BxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUxMjQ1MzMsImV4cCI6MjA5MDcwMDUzM30.-RPvOYMLzftubrpJ4KSVrqL2eNaopjty30_TrnkGpBo";
-    const _s = supabase.createClient(u, k);
+    // --- UPDATED SUPABASE CONFIG (Matching your new project) ---
+const u = "https://zddelixvencundnkccpq.supabase.co"; 
+const k = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpkZGVsaXh2ZW5jdW5kbmtjY3BxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUxMjQ1MzMsImV4cCI6MjA5MDcwMDUzM30.-RPvOYMLzftubrpJ4KSVrqL2eNaopjty30_TrnkGpBo";
+const _s = supabase.createClient(u, k);
 
-    const log = (msg, isError = false) => {
-        const el = document.getElementById('debug-log');
-        el.innerText = msg;
-        el.style.color = isError ? "#ff7675" : "#00ff00";
-    };
+    // --- 1. LOAD INVENTORY & TRIGGER PULSE ---
+    async function loadInventory() {
+        const { data, error } = await _s.from('pos_products').select('*').order('name', { ascending: true });
+        if (error) return console.error("Database Error:", error.message);
 
-    // 1. Click Trigger
-    document.getElementById('drop-zone').onclick = () => document.getElementById('file-input').click();
+        const tbody = document.getElementById('inventory-body');
+        let lowStockCount = 0;
+        tbody.innerHTML = "";
 
-    // 2. File Processing
-    document.getElementById('file-input').onchange = async (e) => {
-        const file = e.target.files[0];
+        data.forEach(item => {
+            const isLow = item.stock_qty <= item.min_stock;
+            if(isLow) lowStockCount++;
+
+            tbody.innerHTML += `
+                <tr class="${isLow ? 'stock-low' : ''}">
+                    <td><code>${item.barcode || 'N/A'}</code></td>
+                    <td><strong>${item.name}</strong></td>
+                    <td>${item.category || 'General'}</td>
+                    <td>$${parseFloat(item.retail_price).toFixed(2)}</td>
+                    <td>${item.stock_qty}</td>
+                    <td>${item.min_stock}</td>
+                </tr>
+            `;
+        });
+
+        updatePulse(lowStockCount);
+    }
+
+    // --- 2. UPDATE PULSE WIDGET LOGIC ---
+    function updatePulse(count) {
+        const pulse = document.getElementById('stock-pulse');
+        const text = document.getElementById('low-count-text');
+        const icon = document.getElementById('pulse-icon');
+
+        if(count > 0) {
+            pulse.classList.add('pulse-active');
+            text.innerText = `${count} ITEMS REQUIRE RESTOCK`;
+            text.style.color = "var(--danger)";
+            icon.innerText = "🚨";
+        } else {
+            pulse.classList.remove('pulse-active');
+            text.innerText = "INVENTORY LEVELS OPTIMAL";
+            text.style.color = "var(--primary)";
+            icon.innerText = "✅";
+        }
+    }
+
+    // --- 3. BULK UPLOAD HANDLER ---
+    const fileInput = document.getElementById('file-input');
+    const dropZone = document.getElementById('drop-zone');
+
+    fileInput.onchange = (e) => handleFiles(e.target.files[0]);
+
+    function handleFiles(file) {
         if (!file) return;
-
-        log("Reading: " + file.name + "...");
-
+        
         Papa.parse(file, {
             header: true,
+            dynamicTyping: true,
             skipEmptyLines: true,
             complete: async (results) => {
-                log("Processing " + results.data.length + " rows...");
+                const rawData = results.data;
                 
-                const formatted = results.data.map(row => ({
-                    barcode: String(row.Barcode || '').trim(),
+                // Map CSV headers to Supabase column names
+                const formattedData = rawData.map(row => ({
+                    barcode: String(row.Barcode || ''),
                     name: row.Name,
-                    category: row.Category || 'Parts',
-                    retail_price: parseFloat(row.Price) || 0,
-                    stock_qty: parseInt(row.Qty) || 0,
-                    min_stock: parseInt(row.MinQty) || 5
-                })).filter(item => item.name); // Ignore empty rows
+                    category: row.Category || 'General',
+                    retail_price: parseFloat(row.Price || 0),
+                    stock_qty: parseInt(row.Qty || 0),
+                    min_stock: parseInt(row.MinQty || 5)
+                }));
 
-                log("Sending to Supabase... please wait.");
-
-                const { data, error } = await _s.from('pos_products').upsert(formatted, { onConflict: 'barcode' });
-
+                const { error } = await _s.from('pos_products').upsert(formattedData);
+                
                 if (error) {
-                    log("❌ ERROR: " + error.message + " (" + error.details + ")", true);
-                    console.error(error);
+                    alert("Import Failed: " + error.message);
                 } else {
-                    log("✅ SUCCESS! " + formatted.length + " items updated.");
-                    loadData();
+                    alert(`Success! Imported ${formattedData.length} products.`);
+                    loadInventory();
                 }
             }
         });
-    };
-
-    async function loadData() {
-        const { data } = await _s.from('pos_products').select('*').order('name');
-        const tbody = document.querySelector('tbody');
-        tbody.innerHTML = data.map(i => `<tr><td>${i.barcode}</td><td>${i.name}</td><td>${i.stock_qty}</td><td>$${i.retail_price}</td></tr>`).join('');
     }
 
-    loadData();
+    // Initialize
+    loadInventory();
 </script>
 </body></html>
