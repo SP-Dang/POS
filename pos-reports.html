@@ -1,47 +1,54 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8"><title>LSM POS | Reports</title>
+    <meta charset="UTF-8"><title>LSM POS | Reports & Alerts</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
     <style>
-        :root { --primary: #10b981; --sidebar: #0f172a; --bg: #f8fafc; }
+        :root { --primary: #10b981; --danger: #ef4444; --sidebar: #0f172a; --bg: #f8fafc; }
         body { margin: 0; display: flex; background: var(--bg); font-family: 'Plus Jakarta Sans', sans-serif; height: 100vh; }
         .sidebar { width: 260px; background: var(--sidebar); color: white; padding: 30px 20px; }
         .main { flex: 1; padding: 40px; overflow-y: auto; }
-        .stat-card { background: white; padding: 25px; border-radius: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.02); border: 1px solid #eef2f6; }
-        .revenue-text { font-size: 32px; font-weight: 800; color: var(--primary); margin: 10px 0; }
-        table { width: 100%; border-collapse: collapse; background: white; border-radius: 15px; overflow: hidden; margin-top: 30px; }
-        th { background: #f8fafc; padding: 15px; text-align: left; font-size: 12px; color: #64748b; }
-        td { padding: 15px; border-bottom: 1px solid #f1f5f9; font-size: 14px; }
+        .stat-card { background: white; padding: 25px; border-radius: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.02); margin-bottom: 30px; }
         .nav-item { padding: 14px 18px; border-radius: 12px; color: #94a3b8; text-decoration: none; display: block; margin-bottom: 8px; font-weight: 600; }
         .nav-active { background: var(--primary); color: white; }
+        table { width: 100%; border-collapse: collapse; background: white; border-radius: 15px; overflow: hidden; }
+        th { background: #f8fafc; padding: 15px; text-align: left; font-size: 11px; color: #64748b; text-transform: uppercase; }
+        td { padding: 15px; border-bottom: 1px solid #f1f5f9; font-size: 14px; }
+        .badge-red { background: #fee2e2; color: #991b1b; padding: 4px 10px; border-radius: 20px; font-size: 10px; font-weight: 800; }
     </style>
 </head>
 <body>
     <nav class="sidebar">
-        <div style="font-weight:800; color:var(--primary); margin-bottom:40px;">LSM ELITE</div>
+        <div style="font-weight:800; color:var(--primary); margin-bottom:40px; font-size:22px;">ePOS</div>
         <a href="pos-inventory.html" class="nav-item">📦 Inventory</a>
         <a href="pos-checkout.html" class="nav-item">🛒 Checkout</a>
         <a href="pos-reports.html" class="nav-item nav-active">📊 Reports</a>
     </nav>
 
     <main class="main">
-        <h1>Revenue Report</h1>
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+            <h1>Executive Summary</h1>
+            <button onclick="location.reload()" style="padding:10px 20px; border-radius:10px; border:none; cursor:pointer;">🔄 Refresh Data</button>
+        </div>
+
         <div class="stat-card">
-            <span style="color:#64748b; font-weight:600;">Today's Total Revenue</span>
-            <div id="today-revenue" class="revenue-text">₭0</div>
+            <span style="color:#64748b; font-weight:600;">Total Revenue (All Time)</span>
+            <div id="today-revenue" style="font-size:36px; font-weight:800; color:var(--primary); margin:10px 0;">₭0</div>
             <span id="sale-count" style="font-size:12px; color:#94a3b8;">0 Transactions</span>
         </div>
 
-        <table>
-            <thead>
-                <tr>
-                    <th>Time (+7)</th>
-                    <th>Method</th>
-                    <th>Total Amount</th>
-                </tr>
-            </thead>
+        <h2 style="color:var(--danger)">⚠️ Low Stock Re-order List</h2>
+        <div class="stat-card" style="border-left: 6px solid var(--danger); padding:0;">
+            <table>
+                <thead><tr><th>Part / Item</th><th>Stock</th><th>Min</th><th>Action</th></tr></thead>
+                <tbody id="low-stock-list"></tbody>
+            </table>
+        </div>
+
+        <h2 style="margin-top:40px;">Recent Sales Log</h2>
+        <table class="stat-card" style="padding:0;">
+            <thead><tr><th>Time (+7)</th><th>Method</th><th>Amount</th></tr></thead>
             <tbody id="sales-list"></tbody>
         </table>
     </main>
@@ -50,36 +57,33 @@
         const u = "https://zddelixvencundnkccpq.supabase.co"; 
         const k = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpkZGVsaXh2ZW5jdW5kbmtjY3BxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUxMjQ1MzMsImV4cCI6MjA5MDcwMDUzM30.-RPvOYMLzftubrpJ4KSVrqL2eNaopjty30_TrnkGpBo";
         const _s = supabase.createClient(u, k);
-
         const formatLAK = (n) => new Intl.NumberFormat('lo-LA', { style: 'currency', currency: 'LAK' }).format(n);
 
-        async function loadReports() {
-            const { data, error } = await _s.from('pos_sales')
-                .select('*')
-                .eq('status', 'COMPLETED') // High priority: only track COMPLETED
-                .order('created_at', { ascending: false });
-
-            if (error) return console.error(error);
-
-            const list = document.getElementById('sales-list');
-            let totalRev = 0;
-
-            list.innerHTML = data.map(sale => {
-                totalRev += parseFloat(sale.total_amount);
-                const time = new Date(sale.created_at).toLocaleString('lo-LA', { timeZone: 'Asia/Bangkok', hour: '2-digit', minute: '2-digit' });
-                
-                return `<tr>
-                    <td>${time}</td>
-                    <td><b>${sale.payment_method}</b></td>
-                    <td style="font-weight:700;">${formatLAK(sale.total_amount)}</td>
-                </tr>`;
+        async function init() {
+            // 1. Fetch Sales
+            const { data: sales } = await _s.from('pos_sales').select('*').order('created_at', { ascending: false });
+            let total = 0;
+            document.getElementById('sales-list').innerHTML = sales.map(s => {
+                total += parseFloat(s.total_amount);
+                const time = new Date(s.created_at).toLocaleString('lo-LA', { timeZone: 'Asia/Bangkok', hour: '2-digit', minute: '2-digit' });
+                return `<tr><td>${time}</td><td><b>${s.payment_method}</b></td><td style="font-weight:700;">${formatLAK(s.total_amount)}</td></tr>`;
             }).join('');
+            document.getElementById('today-revenue').innerText = formatLAK(total);
+            document.getElementById('sale-count').innerText = sales.length + " Transactions";
 
-            document.getElementById('today-revenue').innerText = formatLAK(totalRev);
-            document.getElementById('sale-count').innerText = `${data.length} Transactions Today`;
+            // 2. Fetch Low Stock
+            const { data: prods } = await _s.from('pos_products').select('*');
+            const low = prods.filter(p => p.stock_qty <= p.min_stock);
+            document.getElementById('low-stock-list').innerHTML = low.length ? low.map(p => `
+                <tr>
+                    <td><b>${p.name}</b><br><small style="color:#94a3b8">${p.barcode}</small></td>
+                    <td style="color:var(--danger); font-weight:800;">${p.stock_qty}</td>
+                    <td>${p.min_stock}</td>
+                    <td><span class="badge-red">REORDER</span></td>
+                </tr>
+            `).join('') : '<tr><td colspan="4" style="text-align:center; padding:20px;">✅ All stock levels normal</td></tr>';
         }
-
-        loadReports();
+        init();
     </script>
 </body>
 </html>
