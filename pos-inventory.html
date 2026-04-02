@@ -1,124 +1,195 @@
 <!DOCTYPE html>
-<html lang="en"><head>
+<html lang="en">
+<head>
     <meta charset="UTF-8">
-    <title>LSM POS - INVENTORY ELITE</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LSM POS | Inventory Elite</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
     
-    <script>
-        /* PapaParse 5.3.2 - Embedded to prevent ReferenceError */
-        (function(e){"use strict";var t=function(t,n){n=n||{};var r=n.worker,i=n.complete,o=n.error,a=n.download;if(r&&"undefined"!=typeof Worker&&"undefined"!=typeof URL){var s=new Worker(f());s.onmessage=function(e){var t=e.data;if("function"==typeof i)i(t)},s.postMessage({input:t,config:n})}else{var c=new l(n);c.parse(t,i,o)}};function l(e){var t=this;t.parse=function(n,r,i){var o=Papa.parse(n,e);if("function"==typeof r)r(o)}};e.Papa=e.Papa||{};e.Papa.parse=function(e,t){var n=new u(t);return n.parse(e)};function u(e){var t=this;e=e||{};var n=e.delimiter||",";t.parse=function(t){var r=t.split(/\r\n|\r|\n/);var i=[];var o=r[0].split(n);for(var a=1;a<r.length;a++){var s=r[a].split(n);if(s.length===o.length){var c={};for(var f=0;f<o.length;f++){c[o[f].trim()]=s[f].trim()}i.push(c)}}return{data:i}}};var f=function(){var e="onmessage=function(e){var t=e.data.input;var n=e.data.config;var r=new u(n);var i=r.parse(t);postMessage(i)}";return URL.createObjectURL(new Blob([e],{type:"application/javascript"}))}})(window);
-    </script>
+    <script>(function(e){"use strict";e.Papa=e.Papa||{};e.Papa.parse=function(e,t){t=t||{};var n=t.delimiter||(e.includes(";")?";":",");var r=e.split(/\r\n|\r|\n/);var i=[];var o=r[0].split(n);for(var a=1;a<r.length;a++){var s=r[a].split(n);if(s.length===o.length){var c={};for(var f=0;f<o.length;f++){c[o[f].trim()]=s[f].trim()}i.push(c)}}return{data:i}}})(window);</script>
 
     <style>
-        :root { --primary: #27ae60; --danger: #e74c3c; --dark: #1a1a1a; }
-        body { font-family: 'Segoe UI', sans-serif; background: #f4f4f9; padding: 20px; }
-        .container { max-width: 1000px; margin: 0 auto; }
-        .log-box { background: #1e272e; color: #2ecc71; padding: 15px; border-radius: 8px; font-family: monospace; margin-bottom: 20px; border-left: 5px solid #555; }
-        .upload-card { background: white; border: 3px dashed var(--primary); padding: 50px; text-align: center; border-radius: 15px; cursor: pointer; transition: 0.2s; }
-        .upload-card:hover { background: #f0fff4; }
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; background: white; border-radius: 10px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
-        th, td { padding: 15px; text-align: left; border-bottom: 1px solid #eee; }
-        th { background: var(--dark); color: white; }
-    </style>
-</head><body>
+        :root {
+            --primary: #10b981; --primary-dark: #059669;
+            --bg: #f1f5f9; --sidebar: #0f172a;
+            --card: #ffffff; --danger: #ef4444;
+            --text: #1e293b; --text-light: #64748b;
+        }
 
-<div class="container">
-    <div id="status-display" class="log-box">System Status: System Initialized.</div>
+        * { box-sizing: border-box; font-family: 'Plus Jakarta Sans', sans-serif; }
+        body { margin: 0; display: flex; background: var(--bg); color: var(--text); height: 100vh; overflow: hidden; }
 
-    <div class="upload-card" id="drop-zone">
-        <h2 style="margin:0;">📦 Step 1: Click to Upload CSV</h2>
-        <p style="color:#666;">Use the <b>LSM_Inventory.csv</b> file I provided earlier.</p>
-        <input type="file" id="file-input" style="display:none" accept=".csv">
-    </div>
+        /* Sidebar Nav */
+        .sidebar { width: 260px; background: var(--sidebar); color: white; padding: 30px 20px; display: flex; flex-direction: column; }
+        .logo { font-weight: 800; font-size: 22px; color: var(--primary); margin-bottom: 40px; display: flex; align-items: center; gap: 10px; }
+        .nav-item { padding: 14px 18px; border-radius: 12px; color: #94a3b8; text-decoration: none; margin-bottom: 8px; transition: 0.3s; font-weight: 600; display: flex; align-items: center; gap: 12px; }
+        .nav-item:hover { background: rgba(255,255,255,0.05); color: white; }
+        .nav-item.active { background: var(--primary); color: white; box-shadow: 0 10px 15px -3px rgba(16, 185, 129, 0.3); }
 
-    <table id="product-table">
-        <thead>
-            <tr>
-                <th>Barcode</th>
-                <th>Product Name</th>
-                <th>Price</th>
-                <th>Stock</th>
-                <th>Min Level</th>
-            </tr>
-        </thead>
-        <tbody id="inventory-body"></tbody>
-    </table>
-</div>
-
-<script>
-    // SUPABASE KEYS
-    const u = "https://zddelixvencundnkccpq.supabase.co"; 
-    const k = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpkZGVsaXh2ZW5jdW5kbmtjY3BxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUxMjQ1MzMsImV4cCI6MjA5MDcwMDUzM30.-RPvOYMLzftubrpJ4KSVrqL2eNaopjty30_TrnkGpBo";
-    const _s = supabase.createClient(u, k);
-
-    const updateStatus = (msg, err = false) => {
-        const el = document.getElementById('status-display');
-        el.innerText = "System: " + msg;
-        el.style.color = err ? "#ff7675" : "#2ecc71";
-    };
-
-    // Trigger Upload Window
-    document.getElementById('drop-zone').onclick = () => document.getElementById('file-input').click();
-
-    document.getElementById('file-input').onchange = (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-
-        updateStatus("Reading file: " + file.name);
-
-        const reader = new FileReader();
-        reader.onload = async (event) => {
-            const text = event.target.result;
-            
-            // Auto-detect Semicolon vs Comma
-            const delimiter = text.includes(';') ? ';' : ',';
-            updateStatus("Detected delimiter: [" + delimiter + "]. Parsing...");
-
-            const results = Papa.parse(text, { header: true, delimiter: delimiter });
-            
-            if (results.data && results.data.length > 0) {
-                const formatted = results.data.map(row => ({
-                    barcode: String(row.Barcode || '').trim(),
-                    name: row.Name,
-                    category: row.Category || 'General',
-                    retail_price: parseFloat(row.Price) || 0,
-                    stock_qty: parseInt(row.Qty) || 0,
-                    min_stock: parseInt(row.MinQty) || 5
-                })).filter(item => item.name);
-
-                updateStatus("Uploading " + formatted.length + " items to Supabase...");
-
-                const { error } = await _s.from('pos_products').upsert(formatted, { onConflict: 'barcode' });
-
-                if (error) {
-                    updateStatus("❌ Database Error: " + error.message, true);
-                } else {
-                    updateStatus("✅ SUCCESS! Inventory Updated.");
-                    loadInventory();
-                }
-            } else {
-                updateStatus("❌ Error: No data found in CSV", true);
-            }
-        };
-        reader.readAsText(file);
-    };
-
-    async function loadInventory() {
-        const { data, error } = await _s.from('pos_products').select('*').order('name');
-        if (error) return;
+        /* Main Area */
+        .main { flex: 1; overflow-y: auto; padding: 40px; }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
         
-        const tbody = document.getElementById('inventory-body');
-        tbody.innerHTML = data.map(i => `
-            <tr>
-                <td><code>${i.barcode}</code></td>
-                <td><strong>${i.name}</strong></td>
-                <td>$${parseFloat(i.retail_price).toFixed(2)}</td>
-                <td style="font-weight:bold; color:${i.stock_qty <= i.min_stock ? 'red' : 'green'}">${i.stock_qty}</td>
-                <td>${i.min_stock}</td>
-            </tr>
-        `).join('');
-    }
+        /* Pulse Widget */
+        .status-pulse {
+            background: var(--card); padding: 15px 25px; border-radius: 16px; 
+            display: flex; align-items: center; gap: 15px; border: 1px solid rgba(0,0,0,0.05);
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+        }
+        .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--primary); }
+        .pulse-red .dot { background: var(--danger); animation: pulse 2s infinite; }
+        @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); } 70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); } 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); } }
 
-    loadInventory();
-</script>
-</body></html>
+        /* Inventory Grid */
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 25px; }
+        .card { 
+            background: var(--card); border-radius: 20px; padding: 25px; border: 1px solid rgba(0,0,0,0.04);
+            transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1); position: relative;
+        }
+        .card:hover { transform: translateY(-8px); box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); }
+        
+        .badge { font-size: 10px; font-weight: 800; padding: 4px 12px; border-radius: 20px; text-transform: uppercase; }
+        .badge-ok { background: #ecfdf5; color: #065f46; }
+        .badge-low { background: #fef2f2; color: #991b1b; }
+
+        .price { font-size: 24px; font-weight: 800; margin: 15px 0; color: var(--sidebar); }
+        .stock-bar { height: 6px; background: #e2e8f0; border-radius: 10px; margin: 15px 0 5px; overflow: hidden; }
+        .stock-fill { height: 100%; background: var(--primary); transition: 0.5s; }
+        .stock-low .stock-fill { background: var(--danger); }
+
+        .btn-main { background: var(--sidebar); color: white; padding: 14px 28px; border-radius: 12px; border: none; font-weight: 700; cursor: pointer; transition: 0.3s; }
+        .btn-main:hover { background: #1e293b; transform: scale(1.02); }
+        
+        /* Debug Log */
+        .debug-bar { position: fixed; bottom: 20px; right: 20px; background: #1e293b; color: #10b981; padding: 10px 20px; border-radius: 10px; font-size: 12px; font-family: monospace; z-index: 100; }
+    </style>
+</head>
+<body>
+
+    <nav class="sidebar">
+        <div class="logo"><span>⚡</span> LSM ELITE</div>
+        <a href="#" class="nav-item">📊 Dashboard</a>
+        <a href="#" class="nav-item">🛒 Checkout</a>
+        <a href="#" class="nav-item active">📦 Inventory</a>
+        <a href="#" class="nav-item">👥 Customers</a>
+        <a href="#" class="nav-item" style="margin-top:auto">⚙️ Settings</a>
+    </nav>
+
+    <main class="main">
+        <div class="header">
+            <div>
+                <h1 style="margin:0; font-size: 28px;">Inventory Master</h1>
+                <p style="color: var(--text-light); margin: 5px 0 0;">Manage your garage parts and retail stock</p>
+            </div>
+            <div id="pulse-widget" class="status-pulse">
+                <div class="dot"></div>
+                <span id="pulse-text" style="font-weight: 600; font-size: 14px;">System Online</span>
+            </div>
+        </div>
+
+        <div style="background: white; padding: 30px; border-radius: 20px; margin-bottom: 30px; display: flex; align-items: center; justify-content: space-between; border: 1px solid rgba(0,0,0,0.05);">
+            <div>
+                <h3 style="margin:0">Bulk Import</h3>
+                <p style="color: var(--text-light); font-size: 14px; margin: 5px 0 0;">Upload your CSV to sync levels instantly</p>
+            </div>
+            <button class="btn-main" onclick="document.getElementById('file-input').click()">Upload CSV File</button>
+            <input type="file" id="file-input" hidden accept=".csv">
+        </div>
+
+        <div class="grid" id="inventory-grid">
+            </div>
+    </main>
+
+    <div id="debug" class="debug-bar">Ready for sync...</div>
+
+    <script>
+        const u = "https://zddelixvencundnkccpq.supabase.co"; 
+        const k = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpkZGVsaXh2ZW5jdW5kbmtjY3BxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUxMjQ1MzMsImV4cCI6MjA5MDcwMDUzM30.-RPvOYMLzftubrpJ4KSVrqL2eNaopjty30_TrnkGpBo";
+        const _s = supabase.createClient(u, k);
+
+        function log(msg) { document.getElementById('debug').innerText = "Log: " + msg; }
+
+        // Format LAK Currency
+        const formatLAK = (val) => new Intl.NumberFormat('lo-LA', { style: 'currency', currency: 'LAK' }).format(val);
+
+        // Handle File Upload
+        document.getElementById('file-input').onchange = (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = async (event) => {
+                const results = Papa.parse(event.target.result);
+                if (results.data.length > 0) {
+                    const formatted = results.data.map(row => ({
+                        barcode: String(row.Barcode || '').trim(),
+                        name: row.Name,
+                        category: row.Category || 'General',
+                        retail_price: parseFloat(row.Price) || 0,
+                        stock_qty: parseInt(row.Qty) || 0,
+                        min_stock: parseInt(row.MinQty) || 5
+                    })).filter(i => i.name);
+
+                    log("Syncing " + formatted.length + " items...");
+                    const { error } = await _s.from('pos_products').upsert(formatted, { onConflict: 'barcode' });
+                    if(error) log("Error: " + error.message);
+                    else { log("Sync Complete!"); loadInventory(); }
+                }
+            };
+            reader.readAsText(file);
+        };
+
+        async function loadInventory() {
+            const { data, error } = await _s.from('pos_products').select('*').order('name');
+            if (error) return log(error.message);
+
+            const grid = document.getElementById('inventory-grid');
+            let lowItems = 0;
+            
+            grid.innerHTML = data.map(i => {
+                const isLow = i.stock_qty <= i.min_stock;
+                if(isLow) lowItems++;
+                
+                // --- TIMEZONE FIX (+7) ---
+                const localDate = new Date(i.created_at).toLocaleString('en-GB', { timeZone: 'Asia/Bangkok' });
+
+                return `
+                    <div class="card ${isLow ? 'stock-low' : ''}">
+                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                            <span style="font-family:monospace; color:var(--text-light); font-size:12px;">#${i.barcode}</span>
+                            <span class="badge ${isLow ? 'badge-low' : 'badge-ok'}">${isLow ? 'Low Stock' : 'Healthy'}</span>
+                        </div>
+                        <h3 style="margin:15px 0 5px 0;">${i.name}</h3>
+                        <div class="price">${formatLAK(i.retail_price)}</div>
+                        
+                        <div class="stock-bar">
+                            <div class="stock-fill" style="width: ${Math.min((i.stock_qty/20)*100, 100)}%"></div>
+                        </div>
+                        <div style="display:flex; justify-content:space-between; font-size:12px; color:var(--text-light);">
+                            <span>Stock: <b>${i.stock_qty}</b></span>
+                            <span>Min: ${i.min_stock}</span>
+                        </div>
+                        <div style="margin-top:15px; font-size:10px; color:#cbd5e1; border-top:1px solid #f1f5f9; padding-top:10px;">
+                            Added: ${localDate}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            // Update Pulse Widget
+            const pulse = document.getElementById('pulse-widget');
+            const pText = document.getElementById('pulse-text');
+            if(lowItems > 0) {
+                pulse.classList.add('pulse-red');
+                pText.innerHTML = `<span style="color:var(--danger)">${lowItems} Items Low</span>`;
+            } else {
+                pulse.classList.remove('pulse-red');
+                pText.innerText = "Stock Levels Healthy";
+            }
+        }
+
+        loadInventory();
+    </script>
+</body>
+</html>
