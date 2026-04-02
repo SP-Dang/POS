@@ -215,18 +215,34 @@
             b.classList.add('active');
         }
 
-        async function finishOrder() {
-            if (cart.length === 0) return;
-            
-            // Deduct stock in Supabase
-            for (let item of cart) {
-                await _s.rpc('decrement_stock', { row_id: item.id, x: item.qty });
-            }
-
-            alert(`Order Success!\nTotal: ${document.getElementById('grand-total').innerText}\nMethod: ${payMethod}`);
-            cart = [];
-            drawCart();
+ async function finishOrder() {
+    if (cart.length === 0) return;
+    
+    const total = cart.reduce((s, i) => s + (i.retail_price * i.qty), 0);
+    
+    // 1. Save Sale to pos_sales Table
+    const { error: saleError } = await _s.from('pos_sales').insert([
+        {
+            items: cart, // Saves the whole cart as JSON
+            total_amount: total,
+            payment_method: payMethod
         }
+    ]);
+
+    if (saleError) {
+        alert("Error saving sale: " + saleError.message);
+        return;
+    }
+
+    // 2. Deduct stock in Supabase (using the RPC we created earlier)
+    for (let item of cart) {
+        await _s.rpc('decrement_stock', { row_id: item.id, x: item.qty });
+    }
+
+    alert(`Order Success!\nTotal: ${formatLAK(total)}\nMethod: ${payMethod}`);
+    cart = [];
+    drawCart();
+}
 
         drawCart();
     </script>
