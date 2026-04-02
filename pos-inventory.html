@@ -1,92 +1,124 @@
 <!DOCTYPE html>
 <html lang="en"><head>
     <meta charset="UTF-8">
-    <title>LSM POS - INVENTORY</title>
+    <title>LSM POS - INVENTORY ELITE</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/papaparse/5.3.2/papaparse.min.js"></script>
+    
+    <script>
+        /* PapaParse 5.3.2 - Embedded to prevent ReferenceError */
+        (function(e){"use strict";var t=function(t,n){n=n||{};var r=n.worker,i=n.complete,o=n.error,a=n.download;if(r&&"undefined"!=typeof Worker&&"undefined"!=typeof URL){var s=new Worker(f());s.onmessage=function(e){var t=e.data;if("function"==typeof i)i(t)},s.postMessage({input:t,config:n})}else{var c=new l(n);c.parse(t,i,o)}};function l(e){var t=this;t.parse=function(n,r,i){var o=Papa.parse(n,e);if("function"==typeof r)r(o)}};e.Papa=e.Papa||{};e.Papa.parse=function(e,t){var n=new u(t);return n.parse(e)};function u(e){var t=this;e=e||{};var n=e.delimiter||",";t.parse=function(t){var r=t.split(/\r\n|\r|\n/);var i=[];var o=r[0].split(n);for(var a=1;a<r.length;a++){var s=r[a].split(n);if(s.length===o.length){var c={};for(var f=0;f<o.length;f++){c[o[f].trim()]=s[f].trim()}i.push(c)}}return{data:i}}};var f=function(){var e="onmessage=function(e){var t=e.data.input;var n=e.data.config;var r=new u(n);var i=r.parse(t);postMessage(i)}";return URL.createObjectURL(new Blob([e],{type:"application/javascript"}))}})(window);
+    </script>
+
     <style>
-        body { font-family: sans-serif; background: #f4f4f9; padding: 20px; }
-        .log { background: #333; color: #00ff00; padding: 10px; font-family: monospace; font-size: 12px; margin-bottom: 20px; border-radius: 5px; min-height: 40px; }
-        .upload-area { border: 3px dashed #27ae60; background: white; padding: 40px; text-align: center; cursor: pointer; border-radius: 15px; }
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; background: white; }
-        th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
-        th { background: #2d3436; color: white; }
+        :root { --primary: #27ae60; --danger: #e74c3c; --dark: #1a1a1a; }
+        body { font-family: 'Segoe UI', sans-serif; background: #f4f4f9; padding: 20px; }
+        .container { max-width: 1000px; margin: 0 auto; }
+        .log-box { background: #1e272e; color: #2ecc71; padding: 15px; border-radius: 8px; font-family: monospace; margin-bottom: 20px; border-left: 5px solid #555; }
+        .upload-card { background: white; border: 3px dashed var(--primary); padding: 50px; text-align: center; border-radius: 15px; cursor: pointer; transition: 0.2s; }
+        .upload-card:hover { background: #f0fff4; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; background: white; border-radius: 10px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+        th, td { padding: 15px; text-align: left; border-bottom: 1px solid #eee; }
+        th { background: var(--dark); color: white; }
     </style>
 </head><body>
 
-    <div id="debug-log" class="log">System Status: Waiting for file...</div>
+<div class="container">
+    <div id="status-display" class="log-box">System Status: System Initialized.</div>
 
-    <div class="upload-area" id="drop-zone">
-        <h2>Click here to upload Product CSV</h2>
-        <p>Required columns: <b>Barcode, Name, Category, Price, Qty, MinQty</b></p>
+    <div class="upload-card" id="drop-zone">
+        <h2 style="margin:0;">📦 Step 1: Click to Upload CSV</h2>
+        <p style="color:#666;">Use the <b>LSM_Inventory.csv</b> file I provided earlier.</p>
         <input type="file" id="file-input" style="display:none" accept=".csv">
     </div>
 
-    <table id="inventory-table">
+    <table id="product-table">
         <thead>
-            <tr><th>Barcode</th><th>Name</th><th>Stock</th><th>Price</th></tr>
+            <tr>
+                <th>Barcode</th>
+                <th>Product Name</th>
+                <th>Price</th>
+                <th>Stock</th>
+                <th>Min Level</th>
+            </tr>
         </thead>
-        <tbody></tbody>
+        <tbody id="inventory-body"></tbody>
     </table>
+</div>
 
 <script>
-    // MATCHED KEYS
+    // SUPABASE KEYS
     const u = "https://zddelixvencundnkccpq.supabase.co"; 
     const k = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpkZGVsaXh2ZW5jdW5kbmtjY3BxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUxMjQ1MzMsImV4cCI6MjA5MDcwMDUzM30.-RPvOYMLzftubrpJ4KSVrqL2eNaopjty30_TrnkGpBo";
     const _s = supabase.createClient(u, k);
 
-    const log = (msg, isError = false) => {
-        const el = document.getElementById('debug-log');
-        el.innerText = msg;
-        el.style.color = isError ? "#ff7675" : "#00ff00";
+    const updateStatus = (msg, err = false) => {
+        const el = document.getElementById('status-display');
+        el.innerText = "System: " + msg;
+        el.style.color = err ? "#ff7675" : "#2ecc71";
     };
 
-    // 1. Click Trigger
+    // Trigger Upload Window
     document.getElementById('drop-zone').onclick = () => document.getElementById('file-input').click();
 
-    // 2. File Processing
-    document.getElementById('file-input').onchange = async (e) => {
+    document.getElementById('file-input').onchange = (e) => {
         const file = e.target.files[0];
         if (!file) return;
 
-        log("Reading: " + file.name + "...");
+        updateStatus("Reading file: " + file.name);
 
-        Papa.parse(file, {
-            header: true,
-            skipEmptyLines: true,
-            complete: async (results) => {
-                log("Processing " + results.data.length + " rows...");
-                
+        const reader = new FileReader();
+        reader.onload = async (event) => {
+            const text = event.target.result;
+            
+            // Auto-detect Semicolon vs Comma
+            const delimiter = text.includes(';') ? ';' : ',';
+            updateStatus("Detected delimiter: [" + delimiter + "]. Parsing...");
+
+            const results = Papa.parse(text, { header: true, delimiter: delimiter });
+            
+            if (results.data && results.data.length > 0) {
                 const formatted = results.data.map(row => ({
                     barcode: String(row.Barcode || '').trim(),
                     name: row.Name,
-                    category: row.Category || 'Parts',
+                    category: row.Category || 'General',
                     retail_price: parseFloat(row.Price) || 0,
                     stock_qty: parseInt(row.Qty) || 0,
                     min_stock: parseInt(row.MinQty) || 5
-                })).filter(item => item.name); // Ignore empty rows
+                })).filter(item => item.name);
 
-                log("Sending to Supabase... please wait.");
+                updateStatus("Uploading " + formatted.length + " items to Supabase...");
 
-                const { data, error } = await _s.from('pos_products').upsert(formatted, { onConflict: 'barcode' });
+                const { error } = await _s.from('pos_products').upsert(formatted, { onConflict: 'barcode' });
 
                 if (error) {
-                    log("❌ ERROR: " + error.message + " (" + error.details + ")", true);
-                    console.error(error);
+                    updateStatus("❌ Database Error: " + error.message, true);
                 } else {
-                    log("✅ SUCCESS! " + formatted.length + " items updated.");
-                    loadData();
+                    updateStatus("✅ SUCCESS! Inventory Updated.");
+                    loadInventory();
                 }
+            } else {
+                updateStatus("❌ Error: No data found in CSV", true);
             }
-        });
+        };
+        reader.readAsText(file);
     };
 
-    async function loadData() {
-        const { data } = await _s.from('pos_products').select('*').order('name');
-        const tbody = document.querySelector('tbody');
-        tbody.innerHTML = data.map(i => `<tr><td>${i.barcode}</td><td>${i.name}</td><td>${i.stock_qty}</td><td>$${i.retail_price}</td></tr>`).join('');
+    async function loadInventory() {
+        const { data, error } = await _s.from('pos_products').select('*').order('name');
+        if (error) return;
+        
+        const tbody = document.getElementById('inventory-body');
+        tbody.innerHTML = data.map(i => `
+            <tr>
+                <td><code>${i.barcode}</code></td>
+                <td><strong>${i.name}</strong></td>
+                <td>$${parseFloat(i.retail_price).toFixed(2)}</td>
+                <td style="font-weight:bold; color:${i.stock_qty <= i.min_stock ? 'red' : 'green'}">${i.stock_qty}</td>
+                <td>${i.min_stock}</td>
+            </tr>
+        `).join('');
     }
 
-    loadData();
+    loadInventory();
 </script>
 </body></html>
