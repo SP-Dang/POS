@@ -7,10 +7,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
     <style>
-        :root {
-            --primary: #10b981; --sidebar: #0f172a; --bg: #f8fafc;
-            --card: #ffffff; --text: #1e293b; --text-muted: #94a3b8;
-        }
+        :root { --primary: #10b981; --sidebar: #0f172a; --bg: #f8fafc; --text: #1e293b; --text-muted: #94a3b8; }
         * { box-sizing: border-box; font-family: 'Plus Jakarta Sans', sans-serif; }
         body { margin: 0; display: flex; background: var(--bg); color: var(--text); height: 100vh; overflow: hidden; }
 
@@ -23,47 +20,42 @@
 
         /* Layout */
         .checkout-container { flex: 1; display: grid; grid-template-columns: 1fr 420px; height: 100vh; }
-        
-        /* Left: Cart */
-        .cart-section { padding: 30px; overflow-y: auto; background: var(--bg); }
+        .cart-section { padding: 30px; overflow-y: auto; }
         .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; }
+        .search-box { padding: 10px 15px; border-radius: 10px; border: 1px solid #e2e8f0; width: 220px; outline: none; }
         
-        .scan-indicator { background: #dcfce7; color: #166534; padding: 8px 16px; border-radius: 30px; font-size: 12px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
-        .scan-dot { width: 8px; height: 8px; background: var(--primary); border-radius: 50%; animation: blink 1.5s infinite; }
-        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
-
-        .search-box { padding: 10px 15px; border-radius: 10px; border: 1px solid #e2e8f0; width: 220px; outline: none; font-size: 14px; transition: 0.2s; }
-        .search-box:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1); }
-
-        /* Cart Table Styling */
+        /* Cart Table */
         .cart-table { width: 100%; border-collapse: collapse; background: white; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.03); }
-        .cart-table th { background: #f8fafc; padding: 15px; text-align: left; font-size: 11px; text-transform: uppercase; color: var(--text-muted); letter-spacing: 0.5px; }
+        .cart-table th { background: #f8fafc; padding: 15px; text-align: left; font-size: 11px; text-transform: uppercase; color: var(--text-muted); }
         .cart-table td { padding: 12px 15px; border-bottom: 1px solid #f1f5f9; }
-
-        /* Compact Typography Fixes */
-        .item-name { font-size: 13px; font-weight: 700; color: var(--text); margin: 0; max-width: 160px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .item-barcode { font-size: 10px; color: var(--text-muted); font-family: monospace; }
+        .item-name { font-size: 13px; font-weight: 700; max-width: 160px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .item-price, .item-total { font-size: 13px; font-weight: 600; text-align: right; }
-        .item-total { font-weight: 800; color: var(--sidebar); }
 
-        .qty-controls { display: flex; align-items: center; gap: 8px; background: #f8fafc; padding: 4px 8px; border-radius: 8px; width: fit-content; }
-        .qty-btn { background: white; border: 1px solid #e2e8f0; width: 24px; height: 24px; border-radius: 5px; cursor: pointer; font-weight: bold; display: flex; align-items: center; justify-content: center; }
-
-        /* Right: Summary */
+        /* Summary */
         .summary-section { background: white; border-left: 1px solid #e2e8f0; padding: 40px; display: flex; flex-direction: column; }
         .payment-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 20px 0; }
-        .pay-btn { border: 2px solid #f1f5f9; padding: 15px; border-radius: 12px; cursor: pointer; text-align: center; font-weight: 700; background: white; transition: 0.2s; color: var(--text-light); }
+        .pay-btn { border: 2px solid #f1f5f9; padding: 15px; border-radius: 12px; cursor: pointer; text-align: center; font-weight: 700; background: white; }
         .pay-btn.active { border-color: var(--primary); background: #f0fff4; color: var(--primary); }
-
         .total-card { background: var(--sidebar); color: white; padding: 25px; border-radius: 20px; margin-top: auto; }
-        .btn-complete { width: 100%; background: var(--primary); color: white; border: none; padding: 20px; border-radius: 16px; font-size: 18px; font-weight: 800; margin-top: 20px; cursor: pointer; transition: 0.3s; }
-        .btn-complete:hover { transform: translateY(-3px); box-shadow: 0 10px 20px rgba(16, 185, 129, 0.3); }
+        .btn-complete { width: 100%; background: var(--primary); color: white; border: none; padding: 20px; border-radius: 16px; font-size: 18px; font-weight: 800; cursor: pointer; }
+
+        /* --- PRINT STYLES --- */
+        #print-receipt { display: none; }
+        @media print {
+            body * { visibility: hidden; }
+            #print-receipt, #print-receipt * { visibility: visible; }
+            #print-receipt { 
+                display: block; position: absolute; left: 0; top: 0; width: 58mm; 
+                padding: 5px; font-family: 'Courier New', monospace; font-size: 12px; line-height: 1.2;
+            }
+            .r-line { border-top: 1px dashed #000; margin: 5px 0; }
+        }
     </style>
 </head>
 <body>
 
     <nav class="sidebar">
-        <div class="logo">LSM ELITE</div>
+        <div class="logo">ePOS</div>
         <a href="pos-inventory.html" class="nav-item">📦 Inventory</a>
         <a href="pos-checkout.html" class="nav-item active">🛒 Checkout</a>
         <a href="pos-reports.html" class="nav-item">📊 Reports</a>
@@ -72,87 +64,62 @@
     <div class="checkout-container">
         <section class="cart-section">
             <div class="top-bar">
-                <div class="scan-indicator"><div class="scan-dot"></div> Scanner Ready</div>
-                <input type="text" id="manual-input" class="search-box" placeholder="Type Barcode + Enter">
+                <div style="font-weight:800; font-size:20px;">Current Cart</div>
+                <input type="text" id="manual-input" class="search-box" placeholder="Scan or Type Barcode">
             </div>
-            
-            <h1 style="margin: 0 0 20px 0; font-size: 24px;">Current Cart</h1>
-            
             <table class="cart-table">
-                <thead>
-                    <tr>
-                        <th>Product</th>
-                        <th style="text-align:right">Price</th>
-                        <th style="text-align:center">Qty</th>
-                        <th style="text-align:right">Total</th>
-                        <th></th>
-                    </tr>
-                </thead>
-                <tbody id="cart-body">
-                    </tbody>
+                <thead><tr><th>Product</th><th style="text-align:right">Price</th><th style="text-align:center">Qty</th><th style="text-align:right">Total</th><th></th></tr></thead>
+                <tbody id="cart-body"></tbody>
             </table>
         </section>
 
         <section class="summary-section">
             <h2 style="margin:0">Payment</h2>
-            <p style="color:var(--text-muted); font-size:14px;">Select transaction type</p>
-            
             <div class="payment-grid">
                 <button class="pay-btn active" onclick="setPay('Cash', this)">Cash</button>
                 <button class="pay-btn" onclick="setPay('QR / Transfer', this)">QR Code</button>
                 <button class="pay-btn" onclick="setPay('Credit Card', this)">Credit</button>
                 <button class="pay-btn" onclick="setPay('Other', this)">Other</button>
             </div>
-
             <div class="total-card">
-                <div style="display:flex; justify-content:space-between; opacity:0.6; font-size:14px; margin-bottom:8px;">
-                    <span>Items Total</span>
-                    <span id="subtotal">₭0</span>
-                </div>
                 <div style="display:flex; justify-content:space-between; font-size:24px; font-weight:800;">
-                    <span>Grand Total</span>
-                    <span id="grand-total">₭0</span>
+                    <span>Total</span><span id="grand-total">₭0</span>
                 </div>
             </div>
-            
-            <button class="btn-complete" onclick="finishOrder()">Complete Sale</button>
+            <button class="btn-complete" onclick="finishOrder()">Complete Sale & Print</button>
         </section>
     </div>
 
+    <div id="print-receipt">
+        <div style="text-align:center;">
+            <h3 style="margin:0;">LSM ELITE POS</h3>
+            <p style="font-size:10px; margin:2px 0;">Vehicle & Taxi Maintenance<br>Vientiane, Laos</p>
+        </div>
+        <div class="r-line"></div>
+        <div id="receipt-items"></div>
+        <div class="r-line"></div>
+        <div id="receipt-totals" style="font-weight:bold;"></div>
+        <div class="r-line"></div>
+        <p style="text-align:center; font-size:10px;">Thank you for your business!</p>
+    </div>
+
     <script>
-        // --- SUPABASE CONFIG ---
         const u = "https://zddelixvencundnkccpq.supabase.co"; 
         const k = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpkZGVsaXh2ZW5jdW5kbmtjY3BxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUxMjQ1MzMsImV4cCI6MjA5MDcwMDUzM30.-RPvOYMLzftubrpJ4KSVrqL2eNaopjty30_TrnkGpBo";
         const _s = supabase.createClient(u, k);
 
         let cart = [];
         let payMethod = "Cash";
-        let barcodeBuffer = "";
-        let lastKeyTime = Date.now();
-
         const formatLAK = (n) => new Intl.NumberFormat('lo-LA', { style: 'currency', currency: 'LAK' }).format(n);
-
-        // 1. Barcode Logic (Scanner & Manual)
-        window.addEventListener('keydown', (e) => {
-            if (document.activeElement.id === 'manual-input') return;
-            const now = Date.now();
-            if (e.key === 'Enter') {
-                if (barcodeBuffer.length > 1) { lookupItem(barcodeBuffer); barcodeBuffer = ""; }
-            } else {
-                if (now - lastKeyTime > 100) barcodeBuffer = e.key;
-                else barcodeBuffer += e.key;
-            }
-            lastKeyTime = now;
-        });
 
         document.getElementById('manual-input').addEventListener('keypress', (e) => {
             if (e.key === 'Enter') { lookupItem(e.target.value); e.target.value = ""; }
         });
 
         async function lookupItem(code) {
-            const { data, error } = await _s.from('pos_products').select('*').eq('barcode', code.trim()).single();
+            const { data } = await _s.from('pos_products').select('*').eq('barcode', code.trim()).single();
             if (data) addItem(data);
-            else alert("Product #" + code + " not found.");
+            else alert("Product not found.");
         }
 
         function addItem(p) {
@@ -162,88 +129,48 @@
             drawCart();
         }
 
-        // 2. UI Rendering
         function drawCart() {
             const body = document.getElementById('cart-body');
-            if (cart.length === 0) {
-                body.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:50px; color:#94a3b8;">Empty Cart</td></tr>';
-                updateTotals(0);
-                return;
-            }
-
+            if (cart.length === 0) { body.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:50px; color:#94a3b8;">Empty Cart</td></tr>'; updateTotals(0); return; }
             body.innerHTML = cart.map((item, idx) => `
                 <tr>
-                    <td>
-                        <div class="item-name">${item.name}</div>
-                        <div class="item-barcode">${item.barcode}</div>
-                    </td>
+                    <td><div class="item-name">${item.name}</div><div style="font-size:10px; color:#94a3b8;">${item.barcode}</div></td>
                     <td class="item-price">${formatLAK(item.retail_price)}</td>
-                    <td>
-                        <div class="qty-controls" style="margin:auto">
-                            <button class="qty-btn" onclick="adjQty(${idx}, -1)">-</button>
-                            <span style="font-weight:700; width:20px; text-align:center">${item.qty}</span>
-                            <button class="qty-btn" onclick="adjQty(${idx}, 1)">+</button>
-                        </div>
-                    </td>
+                    <td style="text-align:center;">${item.qty}</td>
                     <td class="item-total">${formatLAK(item.retail_price * item.qty)}</td>
-                    <td style="text-align:right">
-                        <button onclick="remItem(${idx})" style="border:none; background:none; cursor:pointer; color:#94a3b8;">✕</button>
-                    </td>
+                    <td><button onclick="remItem(${idx})" style="border:none; background:none; cursor:pointer;">✕</button></td>
                 </tr>
             `).join('');
-            
             const sum = cart.reduce((s, i) => s + (i.retail_price * i.qty), 0);
             updateTotals(sum);
         }
 
-        function updateTotals(total) {
-            document.getElementById('subtotal').innerText = formatLAK(total);
-            document.getElementById('grand-total').innerText = formatLAK(total);
-        }
-
-        function adjQty(i, d) {
-            cart[i].qty += d;
-            if (cart[i].qty <= 0) cart.splice(i, 1);
-            drawCart();
-        }
-
+        function updateTotals(total) { document.getElementById('grand-total').innerText = formatLAK(total); }
         function remItem(i) { cart.splice(i, 1); drawCart(); }
+        function setPay(m, b) { payMethod = m; document.querySelectorAll('.pay-btn').forEach(x => x.classList.remove('active')); b.classList.add('active'); }
 
-        function setPay(m, b) {
-            payMethod = m;
-            document.querySelectorAll('.pay-btn').forEach(x => x.classList.remove('active'));
-            b.classList.add('active');
+        async function finishOrder() {
+            if (cart.length === 0) return;
+            const total = cart.reduce((s, i) => s + (i.retail_price * i.qty), 0);
+            
+            // 1. Prepare Receipt
+            document.getElementById('receipt-items').innerHTML = cart.map(i => `
+                <div style="display:flex; justify-content:space-between; font-size:11px;">
+                    <span>${i.name.substring(0,15)} x${i.qty}</span>
+                    <span>${(i.retail_price * i.qty).toLocaleString()}</span>
+                </div>
+            `).join('');
+            document.getElementById('receipt-totals').innerHTML = `<div style="display:flex; justify-content:space-between;"><span>TOTAL</span><span>${total.toLocaleString()} LAK</span></div>`;
+
+            // 2. Save Sale
+            const { error } = await _s.from('pos_sales').insert([{ items: cart, total_amount: total, payment_method: payMethod }]);
+            
+            if (!error) {
+                window.print(); // Trigger thermal print
+                for (let item of cart) { await _s.rpc('decrement_stock', { row_id: item.id, x: item.qty }); }
+                cart = []; drawCart();
+            }
         }
-
- async function finishOrder() {
-    if (cart.length === 0) return;
-    
-    const total = cart.reduce((s, i) => s + (i.retail_price * i.qty), 0);
-    
-    // 1. Save Sale to pos_sales Table
-    const { error: saleError } = await _s.from('pos_sales').insert([
-        {
-            items: cart, // Saves the whole cart as JSON
-            total_amount: total,
-            payment_method: payMethod
-        }
-    ]);
-
-    if (saleError) {
-        alert("Error saving sale: " + saleError.message);
-        return;
-    }
-
-    // 2. Deduct stock in Supabase (using the RPC we created earlier)
-    for (let item of cart) {
-        await _s.rpc('decrement_stock', { row_id: item.id, x: item.qty });
-    }
-
-    alert(`Order Success!\nTotal: ${formatLAK(total)}\nMethod: ${payMethod}`);
-    cart = [];
-    drawCart();
-}
-
         drawCart();
     </script>
 </body>
