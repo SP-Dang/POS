@@ -26,7 +26,6 @@
         
         .badge { padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 700; }
         .badge-success { background: #dcfce7; color: #166534; }
-        .badge-refunded { background: #f1f5f9; color: #475569; }
     </style>
 </head>
 <body>
@@ -51,8 +50,7 @@
         <button onclick="lookupOrder()" style="padding:15px 30px; background:var(--sidebar); color:white; border-radius:12px; border:none; cursor:pointer; font-weight:600;">ຄົ້ນຫາ</button>
     </div>
 
-    <div id="order-result">
-        </div>
+    <div id="order-result"></div>
 </main>
 
 <script>
@@ -60,32 +58,33 @@
     const k = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpkZGVsaXh2ZW5jdW5kbmtjY3BxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUxMjQ1MzMsImV4cCI6MjA5MDcwMDUzM30.-RPvOYMLzftubrpJ4KSVrqL2eNaopjty30_TrnkGpBo";
     const _s = supabase.createClient(u, k);
 
-    // Auto-search when scanner enters text
     document.getElementById('receipt-scan').addEventListener('keypress', (e) => {
         if (e.key === 'Enter') lookupOrder();
     });
 
-async function lookupOrder() {
-    const code = document.getElementById('receipt-scan').value.trim();
-    if (!code) return;
+    // --- UPDATED LOOKUP FUNCTION ---
+    async function lookupOrder() {
+        const code = document.getElementById('receipt-scan').value.trim();
+        if (!code) return;
 
-    // Use id::text to allow string searching on a UUID column
-    const { data, error } = await _s
-        .from('pos_sales')
-        .select('*')
-        .ilike('id::text', `${code}%`) 
-        .maybeSingle();
+        // Use the generic .filter() method which handles the UUID to text conversion 
+        // behind the scenes more gracefully than .ilike() on a raw UUID column.
+        const { data, error } = await _s
+            .from('pos_sales')
+            .select('*')
+            .filter('id', 'ilike', `${code}%`)
+            .maybeSingle();
 
-    if (error) {
-        console.error(error);
-        return alert("Error: " + error.message);
-    }
-    
-    const container = document.getElementById('order-result');
-    if (!data) {
-        container.innerHTML = `<p style="text-align:center; padding:40px; color:#94a3b8;">❌ ບໍ່ພົບຂໍ້ມູນບິນນີ້ (Receipt not found)</p>`;
-        return;
-    }
+        if (error) {
+            console.error("Database Error:", error);
+            return alert("Error: " + error.message);
+        }
+        
+        const container = document.getElementById('order-result');
+        if (!data) {
+            container.innerHTML = `<p style="text-align:center; padding:40px; color:#94a3b8;">❌ ບໍ່ພົບຂໍ້ມູນບິນນີ້ (Receipt not found)</p>`;
+            return;
+        }
 
         const date = new Date(data.created_at).toLocaleString('lo-LA');
         
@@ -119,14 +118,11 @@ async function lookupOrder() {
     }
 
     async function processReturn(orderId) {
-        if (!confirm("ທ່ານຕ້ອງການຢືນຢັນການຄືນສິນຄ້າ ແລະ ເພີ່ມສະຕັອກກັບຄືນບໍ່? (Confirm Return & Restock?)")) return;
+        if (!confirm("ທ່ານຕ້ອງການຢືນຢັນການຄືນສິນຄ້າ ແລະ ເພີ່ມສະຕັອກກັບຄືນບໍ່?")) return;
 
-        // 1. Get the order details again to get items
         const { data: order } = await _s.from('pos_sales').select('*').eq('id', orderId).single();
         
-        // 2. Loop through items and update stock in pos_products
         for (const item of order.items) {
-            // We need to fetch current stock first
             const { data: prod } = await _s.from('pos_products').select('stock_qty').eq('barcode', item.barcode).single();
             if (prod) {
                 const newQty = prod.stock_qty + item.qty;
@@ -134,16 +130,15 @@ async function lookupOrder() {
             }
         }
 
-        // 3. Delete the sale record (or you could update status to 'Refunded' if you have that column)
         const { error: delError } = await _s.from('pos_sales').delete().eq('id', orderId);
 
         if (!delError) {
-            alert("✅ ສຳເລັດ! ສິນຄ້າຖືກເພີ່ມເຂົ້າສະຕັອກແລ້ວ. (Return Complete & Stock Updated)");
+            alert("✅ ສຳເລັດ! ສິນຄ້າຖືກເພີ່ມເຂົ້າສະຕັອກແລ້ວ.");
             document.getElementById('order-result').innerHTML = "";
             document.getElementById('receipt-scan').value = "";
             document.getElementById('receipt-scan').focus();
         } else {
-            alert("Error processing return: " + delError.message);
+            alert("Error: " + delError.message);
         }
     }
 
