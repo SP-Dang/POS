@@ -89,66 +89,61 @@
 });
 
 async function handleLogin() {
-    const user = document.getElementById('user-select').value;
-    const pin = document.getElementById('pin-input').value;
+    const userSelect = document.getElementById('user-select').value.trim();
+    const pinInput = document.getElementById('pin-input').value.trim();
     const btn = document.getElementById('login-btn');
     const msg = document.getElementById('msg');
 
-    if (pin.length < 4) {
-        msg.style.color = "#ef4444";
-        msg.innerText = "⚠️ Please enter a 4-digit PIN";
-        return;
-    }
-
     btn.disabled = true;
-    btn.innerText = "AUTHENTICATING...";
-    msg.innerText = "";
+    btn.innerText = "VERIFYING...";
 
     try {
-        // We search strictly by NAME and PIN
-        // Ensure the names in your Supabase table match "GM", "Somsak", "Keo", "Bouapha" exactly.
+        // STEP 1: Debug check - Can we even see Somsak?
+        const { data: userCheck, error: checkError } = await _s
+            .from('staff')
+            .select('*')
+            .eq('name', userSelect);
+        
+        if (checkError) {
+            console.error("Database Connection Error:", checkError.message);
+            msg.innerText = "Error: " + checkError.message;
+            btn.disabled = false;
+            return;
+        }
+
+        console.log("Database Debug - Users found with this name:", userCheck);
+
+        // STEP 2: Strict Login Check
         const { data, error } = await _s
             .from('staff')
-            .select('name, role')
-            .eq('name', user) 
-            .eq('pin', pin.trim()) // .trim() removes accidental spaces
+            .select('*')
+            .eq('name', userSelect)
+            .eq('pin', pinInput)
             .maybeSingle();
 
-        if (error) throw error;
-
         if (data) {
-            // Store session info
+            console.log("✅ Match Found!", data);
             localStorage.setItem('lsm_user_name', data.name);
             localStorage.setItem('lsm_role', data.role);
-
+            
             msg.style.color = "#10b981";
-            msg.innerText = "✅ Welcome, " + data.name + "!";
+            msg.innerText = "✅ Success! Redirecting...";
 
             setTimeout(() => {
-                if (data.role === 'GM') {
-                    window.location.href = 'pos-inventory.html';
-                } else {
-                    window.location.href = 'pos-checkout.html';
-                }
+                window.location.href = (data.role === 'GM') ? 'pos-inventory.html' : 'pos-checkout.html';
             }, 800);
-
         } else {
-            // This triggers if NO row matches both NAME and PIN
+            console.warn("❌ Failed. Input Name:", userSelect, "| Input PIN:", pinInput);
             msg.style.color = "#ef4444";
-            msg.innerText = "❌ Invalid PIN for " + user;
+            msg.innerText = "❌ Invalid PIN for " + userSelect;
             btn.disabled = false;
             btn.innerText = "ACCESS SYSTEM";
         }
-
     } catch (err) {
-        console.error("Login Error:", err);
-        msg.style.color = "#ef4444";
-        msg.innerText = "System Error: Check console for details";
+        console.error("Critical Error:", err);
         btn.disabled = false;
-        btn.innerText = "ACCESS SYSTEM";
     }
 }
-
     // Allow Enter key to submit
     document.getElementById('pin-input').addEventListener('keypress', (e) => {
         if (e.key === 'Enter') handleLogin();
