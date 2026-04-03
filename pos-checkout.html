@@ -58,7 +58,7 @@
 </head>
 <body>
 
-   <nav class="sidebar">
+<nav class="sidebar">
     <div class="logo"><span>⚡</span> mPOS</div>
     
     <a href="index.html" class="nav-item">📊 Dashboard</a> 
@@ -70,10 +70,10 @@
     <a href="#" class="nav-item" style="margin-top:auto">⚙️ Settings</a>
     
     <div class="user-box" style="padding: 15px; border-top: 1px solid rgba(255,255,255,0.1); margin-top: 10px;">
-        <div style="font-size: 0.8rem; color: #94a3b8; margin-bottom: 5px;">LOGGED IN AS:</div>
-        <div id="display-user-name" style="font-weight: 600; color: white; margin-bottom: 15px;">Loading...</div>
+        <div style="font-size: 0.7rem; color: #94a3b8; margin-bottom: 5px; opacity: 0.7;">LOGGED IN AS:</div>
+        <div id="display-user-name" style="font-weight: 600; color: white; margin-bottom: 15px; font-size: 0.9rem;">Loading...</div>
         
-        <button onclick="handleLogout()" class="nav-item" style="background: rgba(239, 68, 68, 0.1); color: #ef4444; border: none; width: 100%; text-align: left; cursor: pointer; border-radius: 8px;">
+        <button onclick="handleLogout()" style="background: rgba(239, 68, 68, 0.2); color: #f87171; border: none; width: 100%; text-align: left; padding: 10px; cursor: pointer; border-radius: 8px; font-weight: 600; font-family: inherit;">
             🚪 Log Out
         </button>
     </div>
@@ -250,5 +250,36 @@ function remItem(i) {
         }
         drawCart();
     </script>
+    // 1. This function runs as soon as the page opens
+    function initializeUser() {
+        const name = localStorage.getItem('lsm_user_name');
+        const role = localStorage.getItem('lsm_role');
+        const displayDiv = document.getElementById('display-user-name');
+
+        if (!name) {
+            // If no user is in memory, kick them back to login
+            window.location.href = 'login.html';
+        } else {
+            // Successfully display the name and role
+            if (displayDiv) {
+                displayDiv.innerText = name + " (" + role + ")";
+            }
+        }
+    }
+
+    // 2. This is the Log Out function that clears the memory
+    function handleLogout() {
+        // Use a simple confirm box to prevent accidental logouts
+        if (confirm("Are you sure you want to log out of LSM Retail?")) {
+            localStorage.removeItem('lsm_user_name');
+            localStorage.removeItem('lsm_role');
+            
+            // Redirect back to login
+            window.location.href = 'login.html';
+        }
+    }
+
+    // Run the initialization immediately
+    document.addEventListener('DOMContentLoaded', initializeUser);
 </body>
 </html>
