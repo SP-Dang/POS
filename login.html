@@ -6,157 +6,86 @@
     <title>LSM Retail | Secure Access</title>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
     <style>
-        :root { --primary: #10b981; --sidebar: #0f172a; --bg: #f8fafc; --text: #1e293b; }
+        :root { --primary: #10b981; --sidebar: #0f172a; --bg: #f8fafc; }
         * { box-sizing: border-box; font-family: 'Plus Jakarta Sans', sans-serif; }
-        
-        body { 
-            margin: 0; background: var(--bg); height: 100vh; 
-            display: flex; justify-content: center; align-items: center; 
-            background-image: radial-gradient(circle at 2px 2px, #e2e8f0 1px, transparent 0);
-            background-size: 40px 40px;
-        }
-
-        .login-card { 
-            background: white; padding: 40px; border-radius: 24px; 
-            box-shadow: 0 20px 50px rgba(15, 23, 42, 0.08); 
-            width: 100%; max-width: 400px; text-align: center;
-            border: 1px solid #f1f5f9;
-        }
-
-        .logo { font-weight: 800; font-size: 28px; color: var(--primary); margin-bottom: 10px; letter-spacing: -1px; }
-        h1 { font-size: 20px; color: var(--sidebar); margin-bottom: 8px; }
-        p { color: #94a3b8; font-size: 14px; margin-bottom: 30px; }
-
-        label { display: block; text-align: left; font-size: 11px; font-weight: 800; color: #64748b; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.05em; }
-        
-        select, input { 
-            width: 100%; padding: 14px; margin-bottom: 20px; 
-            border: 1px solid #e2e8f0; border-radius: 12px; 
-            font-size: 16px; font-weight: 600; color: var(--sidebar);
-            outline: none; transition: 0.2s; background: #fff;
-        }
-
-        select:focus, input:focus { border-color: var(--primary); box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.1); }
-
-        .btn-login { 
-            width: 100%; padding: 16px; background: var(--primary); color: white; 
-            border: none; border-radius: 14px; font-weight: 800; cursor: pointer; 
-            font-size: 16px; transition: 0.3s; margin-top: 10px;
-        }
-
-        .btn-login:hover { transform: translateY(-2px); box-shadow: 0 8px 15px rgba(16, 185, 129, 0.2); }
-        .btn-login:disabled { background: #cbd5e1; cursor: not-allowed; transform: none; }
-
-        #msg { margin-top: 20px; font-size: 14px; min-height: 20px; font-weight: 600; }
+        body { margin: 0; background: var(--bg); height: 100vh; display: flex; justify-content: center; align-items: center; }
+        .login-card { background: white; padding: 40px; border-radius: 24px; box-shadow: 0 20px 50px rgba(0,0,0,0.1); width: 100%; max-width: 400px; text-align: center; }
+        .logo { font-weight: 800; font-size: 28px; color: var(--primary); margin-bottom: 10px; }
+        label { display: block; text-align: left; font-size: 11px; font-weight: 800; color: #64748b; margin-bottom: 8px; text-transform: uppercase; }
+        select, input { width: 100%; padding: 14px; margin-bottom: 20px; border: 1px solid #e2e8f0; border-radius: 12px; font-size: 16px; }
+        .btn-login { width: 100%; padding: 16px; background: var(--primary); color: white; border: none; border-radius: 14px; font-weight: 800; cursor: pointer; }
+        #msg { margin-top: 20px; font-weight: 600; font-size: 14px; }
     </style>
 </head>
 <body>
 
 <div class="login-card">
     <div class="logo">LSM RETAIL</div>
-    <h1>Secure Login</h1>
-    <p>Select your name and enter your 4-digit PIN</p>
+    <p>Please enter your 4-digit PIN</p>
 
     <label>Staff Member</label>
     <select id="user-select">
-        <optgroup label="Management">
-            <option value="GM">General Manager</option>
-        </optgroup>
-        <optgroup label="Cashiers">
-            <option value="Somsak">Somsak</option>
-            <option value="Keo">Keo</option>
-            <option value="Bouapha">Bouapha</option>
-        </optgroup>
+        <option value="GM">General Manager</option>
+        <option value="Somsak">Somsak</option>
+        <option value="Keo">Keo</option>
+        <option value="Bouapha">Bouapha</option>
     </select>
 
     <label>Security PIN</label>
-    <input type="password" id="pin-input" placeholder="••••" maxlength="4" inputmode="numeric">
+    <input type="password" id="pin-input" placeholder="••••" maxlength="4">
 
     <button class="btn-login" id="login-btn" onclick="handleLogin()">ACCESS SYSTEM</button>
-    
     <div id="msg"></div>
 </div>
 
-<script type="module">
-    // 1. Import Supabase as a modern Module to bypass tracking blocks
-    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm'
-
-    const u = "https://lophnkwkmkgkrdfxgtmt.supabase.co"; 
-    const k = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxvcGhua3drbWtna3JkZnhndG10Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3ODIxNTQsImV4cCI6MjA5MDM1ODE1NH0.ITu8VpDZy1pnJgafBYkSVOGTK0PHKkD7YN0bdH2UT_I";
-    
-    // 2. Initialize with persistSession: false to avoid "Third Party Cookie" issues
-    const _s = createClient(u, k, {
-        auth: { 
-            persistSession: false,
-            autoRefreshToken: false 
-        }
-    });
-
-    // 3. Attach the function to 'window' so the button 'onclick' can find it
-    window.handleLogin = async function() {
-        const userSelect = document.getElementById('user-select').value.trim();
-        const pinInput = document.getElementById('pin-input').value.trim();
+<script>
+    async function handleLogin() {
+        const user = document.getElementById('user-select').value;
+        const pin = document.getElementById('pin-input').value;
         const btn = document.getElementById('login-btn');
         const msg = document.getElementById('msg');
 
-        if (pinInput.length < 4) {
-            msg.style.color = "#ef4444";
-            msg.innerText = "⚠️ Please enter 4-digit PIN";
-            return;
-        }
+        const u = "https://lophnkwkmkgkrdfxgtmt.supabase.co/rest/v1/staff";
+        const k = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxvcGhua3drbWtna3JkZnhndG10Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3ODIxNTQsImV4cCI6MjA5MDM1ODE1NH0.ITu8VpDZy1pnJgafBYkSVOGTK0PHKkD7YN0bdH2UT_I";
 
         btn.disabled = true;
-        btn.innerText = "AUTHENTICATING...";
-        msg.innerText = "";
+        btn.innerText = "VERIFYING...";
 
         try {
-            // Precise query for Name and PIN
-            const { data, error } = await _s
-                .from('staff')
-                .select('*')
-                .eq('name', userSelect)
-                .eq('pin', pinInput)
-                .maybeSingle();
+            // Direct FETCH call - Browsers trust this more than the Supabase Library
+            const response = await fetch(`${u}?name=eq.${user}&pin=eq.${pin}&select=*`, {
+                method: 'GET',
+                headers: {
+                    'apikey': k,
+                    'Authorization': `Bearer ${k}`
+                }
+            });
 
-            if (error) throw error;
+            const data = await response.json();
 
-            if (data) {
-                // Store session locally
-                localStorage.setItem('lsm_user_name', data.name);
-                localStorage.setItem('lsm_role', data.role);
+            if (data && data.length > 0) {
+                const staff = data[0];
+                localStorage.setItem('lsm_user_name', staff.name);
+                localStorage.setItem('lsm_role', staff.role);
                 
                 msg.style.color = "#10b981";
-                msg.innerText = "✅ Welcome, " + data.name + "!";
+                msg.innerText = "✅ Welcome, " + staff.name;
 
                 setTimeout(() => {
-                    // Redirect based on role
-                    if (data.role === 'GM') {
-                        window.location.href = 'pos-inventory.html';
-                    } else {
-                        window.location.href = 'pos-checkout.html';
-                    }
+                    window.location.href = (staff.role === 'GM') ? 'pos-inventory.html' : 'pos-checkout.html';
                 }, 800);
-
             } else {
                 msg.style.color = "#ef4444";
-                msg.innerText = "❌ Invalid PIN for " + userSelect;
+                msg.innerText = "❌ Invalid PIN for " + user;
                 btn.disabled = false;
                 btn.innerText = "ACCESS SYSTEM";
             }
-
         } catch (err) {
-            console.error("Login Failed:", err);
-            msg.style.color = "#ef4444";
-            msg.innerText = "System Blocked. Try turning off browser 'Shields'.";
+            console.error(err);
+            msg.innerText = "Connection Blocked. Please check internet.";
             btn.disabled = false;
-            btn.innerText = "ACCESS SYSTEM";
         }
-    };
-
-    // 4. Handle 'Enter' key press
-    document.getElementById('pin-input').addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') window.handleLogin();
-    });
+    }
 </script>
 
 </body>
