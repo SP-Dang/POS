@@ -63,11 +63,11 @@
     });
 
     // --- UPDATED LOOKUP FUNCTION ---
-async function lookupOrder() {
+
+    async function lookupOrder() {
     const code = document.getElementById('receipt-scan').value.trim();
     if (!code) return;
 
-    // We call the SQL function we just created
     const { data, error } = await _s
         .rpc('search_sales_by_id', { search_text: code });
 
@@ -77,27 +77,32 @@ async function lookupOrder() {
     }
     
     const container = document.getElementById('order-result');
-    
-    // Check if data exists and has at least one item
     if (!data || data.length === 0) {
         container.innerHTML = `<p style="text-align:center; padding:40px; color:#94a3b8;">❌ ບໍ່ພົບຂໍ້ມູນບິນນີ້ (Receipt not found)</p>`;
         return;
     }
 
-    // Since rpc returns an array, we take the first result
     const order = data[0];
     const date = new Date(order.created_at).toLocaleString('lo-LA');
     
+    // --- DYNAMIC STATUS LOGIC ---
+    const isRefunded = order.status === 'Refunded';
+    const statusBadge = isRefunded 
+        ? `<span class="badge" style="background:#fee2e2; color:#b91c1c;">🔄 ຄືນສິນຄ້າແລ້ວ (Refunded)</span>`
+        : `<span class="badge badge-success">✅ ຊຳລະແລ້ວ (Paid)</span>`;
+
     container.innerHTML = `
-        <div class="order-card">
+        <div class="order-card" style="${isRefunded ? 'border: 2px solid #fee2e2; opacity: 0.8;' : ''}">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
                 <div>
-                    <span class="badge badge-success">ຊຳລະແລ້ວ</span>
+                    ${statusBadge}
                     <h2 style="margin:10px 0 0 0;">ບິນເລກທີ: #${order.id.substring(0,8).toUpperCase()}</h2>
                     <small style="color:#64748b;">${date}</small>
                 </div>
                 <div style="text-align:right">
-                    <div style="font-size:24px; font-weight:800; color:var(--primary);">₭${order.total_amount.toLocaleString()}</div>
+                    <div style="font-size:24px; font-weight:800; color:${isRefunded ? '#94a3b8' : 'var(--primary)'};">
+                        ₭${order.total_amount.toLocaleString()}
+                    </div>
                     <small>${order.payment_method}</small>
                 </div>
             </div>
@@ -112,11 +117,14 @@ async function lookupOrder() {
                 `).join('')}
             </div>
 
-            <button class="btn-return" onclick="processReturn('${order.id}')">🔄 ຄືນສິນຄ້າ ແລະ ເພີ່ມສະຕັອກ (Process Return)</button>
+            ${!isRefunded ? 
+                `<button class="btn-return" onclick="processReturn('${order.id}')">🔄 ຄືນສິນຄ້າ ແລະ ເພີ່ມສະຕັອກ (Process Return)</button>` : 
+                `<p style="color:#ef4444; font-weight:bold; margin-top:15px; text-align:center;">ບິນນີ້ໄດ້ທຳການຄືນສິນຄ້າຮຽບຮ້ອຍແລ້ວ</p>`
+            }
         </div>
     `;
 }
-async function processReturn(orderId) {
+    async function processReturn(orderId) {
     if (!confirm("ຢືນຢັນການຄືນສິນຄ້າ? (Confirm Return?)")) return;
 
     // 1. Get the order details to find items to restock
