@@ -59,6 +59,14 @@
         const _s = supabase.createClient(u, k);
         const formatLAK = (n) => new Intl.NumberFormat('lo-LA', { style: 'currency', currency: 'LAK' }).format(n);
 
+// Security Guard: Redirect non-GMs away from management pages
+const userRole = localStorage.getItem('lsm_role');
+const userName = localStorage.getItem('lsm_user_name');
+
+if (!userName || userRole !== 'GM') {
+    alert("⚠️ Restricted Access: GMs Only.");
+    window.location.href = 'pos-checkout.html';
+}
         async function init() {
             // 1. Fetch Sales
             const { data: sales } = await _s.from('pos_sales').select('*').order('created_at', { ascending: false });
