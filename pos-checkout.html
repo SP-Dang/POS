@@ -6,11 +6,17 @@
     <title>LSM POS | Checkout Elite</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
+    
+    <link href="https://fonts.googleapis.com/css2?family=Phetsarath:wght@400;700&family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
     
     <style>
-        :root { --primary: #10b981; --sidebar: #0f172a; --bg: #f8fafc; --text: #1e293b; --text-muted: #94a3b8; }
-        * { box-sizing: border-box; font-family: 'Plus Jakarta Sans', sans-serif; }
+        :root { 
+            --primary: #10b981; --sidebar: #0f172a; --bg: #f8fafc; --text: #1e293b; --text-muted: #94a3b8; 
+            /* 2. DEFINE LAO FONT STACK */
+            --lao-font: 'Phetsarath', sans-serif;
+        }
+        * { box-sizing: border-box; font-family: 'Plus Jakarta Sans', var(--lao-font); }
+        
         body { margin: 0; display: flex; background: var(--bg); color: var(--text); height: 100vh; overflow: hidden; }
 
         /* Sidebar Nav */
@@ -26,33 +32,34 @@
         .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; }
         .search-box { padding: 12px 15px; border-radius: 10px; border: 1px solid #e2e8f0; width: 250px; outline: none; font-weight: 600; }
 
-        /* Table UI */
+        /* Table UI - Optimized for Lao */
         .cart-table { width: 100%; border-collapse: collapse; background: white; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.03); }
         .cart-table th { background: #f8fafc; padding: 15px; text-align: left; font-size: 11px; text-transform: uppercase; color: var(--text-muted); }
-        .cart-table td { padding: 12px 15px; border-bottom: 1px solid #f1f5f9; }
-        .item-name { font-size: 13px; font-weight: 700; max-width: 160px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .cart-table td { padding: 12px 15px; border-bottom: 1px solid #f1f5f9; line-height: 1.6; }
+        .item-name { font-size: 14px; font-weight: 700; max-width: 160px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-family: var(--lao-font); }
         .item-price, .item-total { font-size: 13px; font-weight: 600; text-align: right; }
 
         /* Right Summary */
         .summary-section { background: white; border-left: 1px solid #e2e8f0; padding: 40px; display: flex; flex-direction: column; }
         .payment-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 20px 0; }
-        .pay-btn { border: 2px solid #f1f5f9; padding: 15px; border-radius: 12px; cursor: pointer; text-align: center; font-weight: 700; background: white; font-family: inherit; }
+        .pay-btn { border: 2px solid #f1f5f9; padding: 15px; border-radius: 12px; cursor: pointer; text-align: center; font-weight: 700; background: white; font-family: var(--lao-font); font-size: 15px; }
         .pay-btn.active { border-color: var(--primary); background: #f0fff4; color: var(--primary); }
         .total-card { background: var(--sidebar); color: white; padding: 25px; border-radius: 20px; margin-top: auto; margin-bottom: 20px; }
-        .btn-complete { width: 100%; background: var(--primary); color: white; border: none; padding: 20px; border-radius: 16px; font-size: 18px; font-weight: 800; cursor: pointer; transition: 0.3s; }
-        .btn-complete:hover { transform: translateY(-3px); box-shadow: 0 10px 20px rgba(16, 185, 129, 0.2); }
+        .btn-complete { width: 100%; background: var(--primary); color: white; border: none; padding: 20px; border-radius: 16px; font-size: 18px; font-weight: 800; cursor: pointer; transition: 0.3s; font-family: var(--lao-font); }
 
-        /* PRINT STYLES (Thermal 58mm/80mm) */
+        /* 3. PRINT STYLES - Optimized for Thermal + Lao */
         #print-receipt { display: none; }
         @media print {
             body * { visibility: hidden; }
             #print-receipt, #print-receipt * { visibility: visible; }
             #print-receipt { 
                 display: block; position: absolute; left: 0; top: 0; width: 58mm; 
-                padding: 5px; font-family: 'Courier New', monospace; font-size: 11px; line-height: 1.2; color: black;
+                padding: 5px; font-family: var(--lao-font); font-size: 12px; line-height: 1.4; color: black;
             }
             .r-line { border-top: 1px dashed #000; margin: 5px 0; }
             #receipt-barcode { width: 100%; height: auto; }
+            .receipt-text-sm { font-size: 10px; }
+            .receipt-row { display: flex; justify-content: space-between; margin-bottom: 3px; }
         }
     </style>
 </head>
@@ -82,16 +89,16 @@
 <div class="checkout-container">
     <section class="cart-section">
         <div class="top-bar">
-            <div style="font-weight:800; font-size:20px;">Current Cart</div>
+            <div style="font-weight:800; font-size:20px;">ລາຍການສິນຄ້າ (Cart)</div>
             <input type="text" id="manual-input" class="search-box" placeholder="Scan/Type Barcode" autofocus>
         </div>
         <table class="cart-table">
             <thead>
                 <tr>
-                    <th>Product</th>
-                    <th style="text-align:right">Price</th>
-                    <th style="text-align:center">Qty</th>
-                    <th style="text-align:right">Total</th>
+                    <th>ສິນຄ້າ</th>
+                    <th style="text-align:right">ລາຄາ</th>
+                    <th style="text-align:center">ຈຳນວນ</th>
+                    <th style="text-align:right">ລວມ</th>
                     <th></th>
                 </tr>
             </thead>
@@ -100,29 +107,29 @@
     </section>
 
     <section class="summary-section">
-        <h2 style="margin:0">Payment</h2>
+        <h2 style="margin:0">ການຊຳລະເງິນ (Payment)</h2>
         <div class="payment-grid">
-            <button class="pay-btn active" onclick="setPay('Cash', this)">Cash</button>
+            <button class="pay-btn active" onclick="setPay('ເງິນສົດ (Cash)', this)">ເງິນສົດ</button>
             <button class="pay-btn" onclick="setPay('QR Code', this)">QR Code</button>
-            <button class="pay-btn" onclick="setPay('Credit Card', this)">Credit</button>
-            <button class="pay-btn" onclick="setPay('Other', this)">Other</button>
+            <button class="pay-btn" onclick="setPay('ບັດເຄຣດິດ', this)">ບັດ</button>
+            <button class="pay-btn" onclick="setPay('ອື່ນໆ', this)">ອື່ນໆ</button>
         </div>
         <div class="total-card">
             <div style="display:flex; justify-content:space-between; font-size:24px; font-weight:800;">
-                <span>Total</span><span id="grand-total">₭0</span>
+                <span>ລວມທັງໝົດ</span><span id="grand-total">₭0</span>
             </div>
         </div>
-        <button class="btn-complete" onclick="finishOrder()">Complete Sale & Print</button>
+        <button class="btn-complete" onclick="finishOrder()">ສຳເລັດການຂາຍ & ພິມບິນ</button>
     </section>
 </div>
 
 <div id="print-receipt">
     <div style="text-align:center;">
-        <h3 style="margin:0;">ໃບຮັບເງິນ</h3>
-        <p style="font-size:9px; margin:2px 0;">ລະບົບຂາຍ LSM Retail<br>ໂທ: 020xxxxxxx</p>
+        <h3 style="margin:0; font-size: 16px;">ໃບຮັບເງິນ</h3>
+        <p class="receipt-text-sm" style="margin:2px 0;">ລະບົບຂາຍ LSM Retail<br>ໂທ: 020xxxxxxx</p>
     </div>
     <div class="r-line"></div>
-    <div id="receipt-header-info"></div>
+    <div id="receipt-header-info" class="receipt-text-sm"></div>
     <div class="r-line"></div>
     <div id="receipt-items"></div>
     <div class="r-line"></div>
@@ -130,7 +137,7 @@
     <div class="r-line"></div>
     <div style="text-align:center; margin-top:10px;">
         <svg id="receipt-barcode"></svg>
-        <p style="font-size:8px; margin-top:4px;">Keep receipt for service warranty</p>
+        <p class="receipt-text-sm" style="margin-top:4px;">ຂໍຂອບໃຈທີ່ໃຊ້ບໍລິການ<br>(Thank you for your visit)</p>
     </div>
 </div>
 
@@ -140,33 +147,25 @@
     const _s = supabase.createClient(u, k);
 
     let cart = [];
-    let payMethod = "Cash";
+    let payMethod = "ເງິນສົດ (Cash)";
     const formatLAK = (n) => new Intl.NumberFormat('lo-LA', { style: 'currency', currency: 'LAK', maximumFractionDigits: 0 }).format(n);
 
-    // --- LOGIC: USER INITIALIZATION & LOGOUT ---
     function initializeUser() {
         const name = localStorage.getItem('lsm_user_name');
         const role = localStorage.getItem('lsm_role');
         const displayDiv = document.getElementById('display-user-name');
-
-        if (!name) {
-            window.location.href = 'login.html';
-        } else {
-            if (displayDiv) {
-                displayDiv.innerText = name + " (" + role + ")";
-            }
-        }
+        if (!name) window.location.href = 'login.html';
+        else if (displayDiv) displayDiv.innerText = name + " (" + role + ")";
     }
 
     function handleLogout() {
-        if (confirm("Are you sure you want to log out of LSM Retail?")) {
+        if (confirm("ທ່ານແນ່ໃຈບໍ່ວ່າຕ້ອງການອອກຈາກລະບົບ?")) {
             localStorage.removeItem('lsm_user_name');
             localStorage.removeItem('lsm_role');
             window.location.href = 'login.html';
         }
     }
 
-    // --- LOGIC: CART & SALES ---
     document.getElementById('manual-input').addEventListener('keypress', (e) => {
         if (e.key === 'Enter') { lookupItem(e.target.value); e.target.value = ""; }
     });
@@ -174,7 +173,7 @@
     async function lookupItem(code) {
         const { data, error } = await _s.from('pos_products').select('*').eq('barcode', code.trim()).maybeSingle();
         if (data) addItem(data);
-        else alert("Product not found.");
+        else alert("ບໍ່ພົບສິນຄ້າ (Product not found).");
     }
 
     function addItem(p) {
@@ -186,7 +185,7 @@
     function drawCart() {
         const body = document.getElementById('cart-body');
         if (cart.length === 0) { 
-            body.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:50px; color:#94a3b8;">Empty Cart</td></tr>'; 
+            body.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:50px; color:#94a3b8;">ບໍ່ມີສິນຄ້າໃນກະຕ່າ</td></tr>'; 
             updateTotals(0); 
             return; 
         }
@@ -221,7 +220,6 @@
         if (cart[idx].qty <= 0) cart.splice(idx, 1);
         drawCart();
     }
-
     function remItem(idx) { cart.splice(idx, 1); drawCart(); }
     function updateTotals(total) { document.getElementById('grand-total').innerText = formatLAK(total); }
     function setPay(m, b) { payMethod = m; document.querySelectorAll('.pay-btn').forEach(x => x.classList.remove('active')); b.classList.add('active'); }
@@ -231,14 +229,29 @@
         const total = cart.reduce((s, i) => s + (i.retail_price * i.qty), 0);
         
         const { data, error } = await _s.from('pos_sales').insert([{ items: cart, total_amount: total, payment_method: payMethod }]).select();
-        if (error) return alert("Database Error: " + error.message);
+        if (error) return alert("ຂໍ້ຜິດພາດ: " + error.message);
 
         const shortID = data[0].id.substring(0, 8).toUpperCase();
         const timeStr = new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
 
-        document.getElementById('receipt-header-info').innerHTML = `<div style="text-align:center; font-size:10px;"><b>ID: #${shortID}</b><br>${new Date().toLocaleDateString('en-GB')} | ${timeStr}</div>`;
-        document.getElementById('receipt-items').innerHTML = cart.map(i => `<div style="display:flex; justify-content:space-between; font-size:10px; margin-bottom:2px;"><span>${i.name.substring(0,18)} x${i.qty}</span><span>${(i.retail_price * i.qty).toLocaleString()}</span></div>`).join('');
-        document.getElementById('receipt-totals').innerHTML = `<div style="display:flex; justify-content:space-between;"><span>TOTAL</span><span>${total.toLocaleString()} LAK</span></div><div style="font-size:9px;">Payment: ${payMethod}</div>`;
+        document.getElementById('receipt-header-info').innerHTML = `
+            <div style="text-align:center;">
+                <b>ລະຫັດບິນ: #${shortID}</b><br>
+                ວັນທີ: ${new Date().toLocaleDateString('lo-LA')} | ເວລາ: ${timeStr}
+            </div>`;
+        
+        document.getElementById('receipt-items').innerHTML = cart.map(i => `
+            <div class="receipt-row">
+                <span>${i.name.substring(0,20)} x${i.qty}</span>
+                <span>${(i.retail_price * i.qty).toLocaleString()}</span>
+            </div>`).join('');
+        
+        document.getElementById('receipt-totals').innerHTML = `
+            <div class="receipt-row" style="font-size:14px;">
+                <span>ລວມທັງໝົດ</span>
+                <span>${total.toLocaleString()} LAK</span>
+            </div>
+            <div class="receipt-text-sm">ການຊຳລະ: ${payMethod}</div>`;
 
         JsBarcode("#receipt-barcode", shortID, { format: "CODE128", width: 1.2, height: 35, displayValue: false, margin: 0 });
 
@@ -249,7 +262,6 @@
         }, 500);
     }
 
-    // --- BOOTSTRAP ---
     document.addEventListener('DOMContentLoaded', () => {
         initializeUser();
         drawCart();
