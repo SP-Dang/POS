@@ -1,17 +1,20 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8"><title>LSM POS | Reports & Alerts</title>
+    <meta charset="UTF-8">
+    <title>LSM POS | Reports & Alerts</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
     <style>
         :root { --primary: #10b981; --danger: #ef4444; --sidebar: #0f172a; --bg: #f8fafc; }
-        body { margin: 0; display: flex; background: var(--bg); font-family: 'Plus Jakarta Sans', sans-serif; height: 100vh; }
-        .sidebar { width: 260px; background: var(--sidebar); color: white; padding: 30px 20px; }
+        body { margin: 0; display: flex; background: var(--bg); font-family: 'Plus Jakarta Sans', sans-serif; height: 100vh; overflow: hidden; }
+        .sidebar { width: 260px; background: var(--sidebar); color: white; padding: 30px 20px; display: flex; flex-direction: column; }
+        .logo { font-weight: 800; font-size: 22px; color: var(--primary); margin-bottom: 40px; display: flex; align-items: center; gap: 10px; }
         .main { flex: 1; padding: 40px; overflow-y: auto; }
         .stat-card { background: white; padding: 25px; border-radius: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.02); margin-bottom: 30px; }
-        .nav-item { padding: 14px 18px; border-radius: 12px; color: #94a3b8; text-decoration: none; display: block; margin-bottom: 8px; font-weight: 600; }
-        .nav-active { background: var(--primary); color: white; }
+        .nav-item { padding: 14px 18px; border-radius: 12px; color: #94a3b8; text-decoration: none; display: flex; align-items: center; gap: 12px; margin-bottom: 8px; font-weight: 600; font-size: 14px; }
+        .nav-item:hover { background: rgba(255,255,255,0.05); color: white; }
+        .nav-active { background: var(--primary); color: white; box-shadow: 0 10px 15px -3px rgba(16, 185, 129, 0.3); }
         table { width: 100%; border-collapse: collapse; background: white; border-radius: 15px; overflow: hidden; }
         th { background: #f8fafc; padding: 15px; text-align: left; font-size: 11px; color: #64748b; text-transform: uppercase; }
         td { padding: 15px; border-bottom: 1px solid #f1f5f9; font-size: 14px; }
@@ -24,8 +27,8 @@
     
     <a href="index.html" class="nav-item">📊 Dashboard</a> 
     <a href="pos-checkout.html" class="nav-item">🛒 Checkout</a> 
-    <a href="pos-inventory.html" class="nav-item active">📦 Inventory</a>
-    <a href="pos-reports.html" class="nav-item">📊 Reports</a>
+    <a href="pos-inventory.html" class="nav-item">📦 Inventory</a>
+    <a href="pos-reports.html" class="nav-item nav-active">📊 Reports</a>
     <a href="#" class="nav-item">👥 Customers</a>
     
     <a href="#" class="nav-item" style="margin-top:auto">⚙️ Settings</a>
@@ -43,7 +46,7 @@
     <main class="main">
         <div style="display:flex; justify-content:space-between; align-items:center;">
             <h1>Executive Summary</h1>
-            <button onclick="location.reload()" style="padding:10px 20px; border-radius:10px; border:none; cursor:pointer;">🔄 Refresh Data</button>
+            <button onclick="location.reload()" style="padding:10px 20px; border-radius:10px; border:none; cursor:pointer; background:#fff; font-weight:600; border:1px solid #e2e8f0;">🔄 Refresh Data</button>
         </div>
 
         <div class="stat-card">
@@ -61,82 +64,93 @@
         </div>
 
         <h2 style="margin-top:40px;">Recent Sales Log</h2>
-        <table class="stat-card" style="padding:0;">
-            <thead><tr><th>Time (+7)</th><th>Method</th><th>Amount</th></tr></thead>
-            <tbody id="sales-list"></tbody>
-        </table>
+        <div class="stat-card" style="padding:0;">
+            <table style="box-shadow:none;">
+                <thead><tr><th>Time (+7)</th><th>Method</th><th>Amount</th></tr></thead>
+                <tbody id="sales-list"></tbody>
+            </table>
+        </div>
     </main>
 
     <script>
+        // --- CONFIGURATION ---
         const u = "https://zddelixvencundnkccpq.supabase.co"; 
         const k = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpkZGVsaXh2ZW5jdW5kbmtjY3BxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUxMjQ1MzMsImV4cCI6MjA5MDcwMDUzM30.-RPvOYMLzftubrpJ4KSVrqL2eNaopjty30_TrnkGpBo";
         const _s = supabase.createClient(u, k);
-        const formatLAK = (n) => new Intl.NumberFormat('lo-LA', { style: 'currency', currency: 'LAK' }).format(n);
+        const formatLAK = (n) => new Intl.NumberFormat('lo-LA', { style: 'currency', currency: 'LAK', maximumFractionDigits: 0 }).format(n);
 
-// Security Guard: Redirect non-GMs away from management pages
-const userRole = localStorage.getItem('lsm_role');
-const userName = localStorage.getItem('lsm_user_name');
+        // --- USER MANAGEMENT & SECURITY ---
+        function initializeUser() {
+            const name = localStorage.getItem('lsm_user_name');
+            const role = localStorage.getItem('lsm_role');
+            const displayDiv = document.getElementById('display-user-name');
 
-if (!userName || userRole !== 'GM') {
-    alert("⚠️ Restricted Access: GMs Only.");
-    window.location.href = 'pos-checkout.html';
-}
-        async function init() {
-            // 1. Fetch Sales
-            const { data: sales } = await _s.from('pos_sales').select('*').order('created_at', { ascending: false });
-            let total = 0;
-            document.getElementById('sales-list').innerHTML = sales.map(s => {
-                total += parseFloat(s.total_amount);
-                const time = new Date(s.created_at).toLocaleString('lo-LA', { timeZone: 'Asia/Bangkok', hour: '2-digit', minute: '2-digit' });
-                return `<tr><td>${time}</td><td><b>${s.payment_method}</b></td><td style="font-weight:700;">${formatLAK(s.total_amount)}</td></tr>`;
-            }).join('');
-            document.getElementById('today-revenue').innerText = formatLAK(total);
-            document.getElementById('sale-count').innerText = sales.length + " Transactions";
+            // Security Check
+            if (!name) {
+                window.location.href = 'login.html';
+                return;
+            } 
+            
+            if (role !== 'GM') {
+                alert("⚠️ Restricted Access: GMs Only.");
+                window.location.href = 'pos-checkout.html';
+                return;
+            }
 
-            // 2. Fetch Low Stock
-            const { data: prods } = await _s.from('pos_products').select('*');
-            const low = prods.filter(p => p.stock_qty <= p.min_stock);
-            document.getElementById('low-stock-list').innerHTML = low.length ? low.map(p => `
-                <tr>
-                    <td><b>${p.name}</b><br><small style="color:#94a3b8">${p.barcode}</small></td>
-                    <td style="color:var(--danger); font-weight:800;">${p.stock_qty}</td>
-                    <td>${p.min_stock}</td>
-                    <td><span class="badge-red">REORDER</span></td>
-                </tr>
-            `).join('') : '<tr><td colspan="4" style="text-align:center; padding:20px;">✅ All stock levels normal</td></tr>';
-        }
-        init();
-    </script>
-    // 1. This function runs as soon as the page opens
-    function initializeUser() {
-        const name = localStorage.getItem('lsm_user_name');
-        const role = localStorage.getItem('lsm_role');
-        const displayDiv = document.getElementById('display-user-name');
-
-        if (!name) {
-            // If no user is in memory, kick them back to login
-            window.location.href = 'login.html';
-        } else {
-            // Successfully display the name and role
+            // UI Display
             if (displayDiv) {
                 displayDiv.innerText = name + " (" + role + ")";
             }
         }
-    }
 
-    // 2. This is the Log Out function that clears the memory
-    function handleLogout() {
-        // Use a simple confirm box to prevent accidental logouts
-        if (confirm("Are you sure you want to log out of LSM Retail?")) {
-            localStorage.removeItem('lsm_user_name');
-            localStorage.removeItem('lsm_role');
-            
-            // Redirect back to login
-            window.location.href = 'login.html';
+        function handleLogout() {
+            if (confirm("Are you sure you want to log out of LSM Retail?")) {
+                localStorage.removeItem('lsm_user_name');
+                localStorage.removeItem('lsm_role');
+                window.location.href = 'login.html';
+            }
         }
-    }
 
-    // Run the initialization immediately
-    document.addEventListener('DOMContentLoaded', initializeUser);
+        // --- DATA INITIALIZATION ---
+        async function init() {
+            try {
+                // 1. Fetch Sales
+                const { data: sales, error: salesError } = await _s.from('pos_sales').select('*').order('created_at', { ascending: false });
+                if (salesError) throw salesError;
+
+                let total = 0;
+                document.getElementById('sales-list').innerHTML = sales.map(s => {
+                    total += parseFloat(s.total_amount);
+                    const time = new Date(s.created_at).toLocaleString('en-GB', { timeZone: 'Asia/Bangkok', hour: '2-digit', minute: '2-digit' });
+                    return `<tr><td>${time}</td><td><b>${s.payment_method}</b></td><td style="font-weight:700;">${formatLAK(s.total_amount)}</td></tr>`;
+                }).join('');
+                
+                document.getElementById('today-revenue').innerText = formatLAK(total);
+                document.getElementById('sale-count').innerText = sales.length + " Transactions";
+
+                // 2. Fetch Low Stock
+                const { data: prods, error: prodError } = await _s.from('pos_products').select('*');
+                if (prodError) throw prodError;
+
+                const low = prods.filter(p => p.stock_qty <= p.min_stock);
+                document.getElementById('low-stock-list').innerHTML = low.length ? low.map(p => `
+                    <tr>
+                        <td><b>${p.name}</b><br><small style="color:#94a3b8">${p.barcode}</small></td>
+                        <td style="color:var(--danger); font-weight:800;">${p.stock_qty}</td>
+                        <td>${p.min_stock}</td>
+                        <td><span class="badge-red">REORDER</span></td>
+                    </tr>
+                `).join('') : '<tr><td colspan="4" style="text-align:center; padding:20px;">✅ All stock levels normal</td></tr>';
+            } catch (err) {
+                console.error("Data load error:", err.message);
+            }
+        }
+
+        // --- RUN STARTUP ---
+        document.addEventListener('DOMContentLoaded', () => {
+            initializeUser(); // Run security first
+            init();           // Run data fetch
+        });
+    </script>
 </body>
 </html>
