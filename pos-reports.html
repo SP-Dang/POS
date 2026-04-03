@@ -6,7 +6,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
     <style>
-        :root { --primary: #10b981; --danger: #ef4444; --sidebar: #0f172a; --bg: #f8fafc; }
+        :root { --primary: #10b981; --danger: #ef4444; --sidebar: #0f172a; --bg: #f8fafc; --warning: #f59e0b; }
         body { margin: 0; display: flex; background: var(--bg); font-family: 'Plus Jakarta Sans', sans-serif; height: 100vh; overflow: hidden; }
         .sidebar { width: 260px; background: var(--sidebar); color: white; padding: 30px 20px; display: flex; flex-direction: column; }
         .logo { font-weight: 800; font-size: 22px; color: var(--primary); margin-bottom: 40px; display: flex; align-items: center; gap: 10px; }
@@ -19,28 +19,22 @@
         th { background: #f8fafc; padding: 15px; text-align: left; font-size: 11px; color: #64748b; text-transform: uppercase; }
         td { padding: 15px; border-bottom: 1px solid #f1f5f9; font-size: 14px; }
         .badge-red { background: #fee2e2; color: #991b1b; padding: 4px 10px; border-radius: 20px; font-size: 10px; font-weight: 800; }
+        .badge-refund { background: #fef3c7; color: #92400e; padding: 4px 10px; border-radius: 20px; font-size: 10px; font-weight: 800; }
     </style>
 </head>
 <body>
    <nav class="sidebar">
     <div class="logo"><span>⚡</span> mPOS</div>
-    
     <a href="index.html" class="nav-item">📊 Dashboard</a> 
     <a href="pos-checkout.html" class="nav-item">🛒 Checkout</a> 
     <a href="pos-orders.html" class="nav-item">📄 Order History</a>
     <a href="pos-inventory.html" class="nav-item">📦 Inventory</a>
     <a href="pos-reports.html" class="nav-item nav-active">📊 Reports</a>
-    <a href="#" class="nav-item">👥 Customers</a>
     
-    <a href="#" class="nav-item" style="margin-top:auto">⚙️ Settings</a>
-    
-    <div class="user-box" style="padding: 15px; border-top: 1px solid rgba(255,255,255,0.1); margin-top: 10px;">
+    <div class="user-box" style="padding: 15px; border-top: 1px solid rgba(255,255,255,0.1); margin-top: auto;">
         <div style="font-size: 0.7rem; color: #94a3b8; margin-bottom: 5px; opacity: 0.7;">LOGGED IN AS:</div>
         <div id="display-user-name" style="font-weight: 600; color: white; margin-bottom: 15px; font-size: 0.9rem;">Loading...</div>
-        
-        <button onclick="handleLogout()" style="background: rgba(239, 68, 68, 0.2); color: #f87171; border: none; width: 100%; text-align: left; padding: 10px; cursor: pointer; border-radius: 8px; font-weight: 600; font-family: inherit;">
-            🚪 Log Out
-        </button>
+        <button onclick="handleLogout()" style="background: rgba(239, 68, 68, 0.2); color: #f87171; border: none; width: 100%; text-align: left; padding: 10px; cursor: pointer; border-radius: 8px; font-weight: 600;">🚪 Log Out</button>
     </div>
 </nav>
 
@@ -51,9 +45,9 @@
         </div>
 
         <div class="stat-card">
-            <span style="color:#64748b; font-weight:600;">Total Revenue (All Time)</span>
+            <span style="color:#64748b; font-weight:600;">Net Revenue (Excluding Returns)</span>
             <div id="today-revenue" style="font-size:36px; font-weight:800; color:var(--primary); margin:10px 0;">₭0</div>
-            <span id="sale-count" style="font-size:12px; color:#94a3b8;">0 Transactions</span>
+            <span id="sale-count" style="font-size:12px; color:#94a3b8;">0 Valid Transactions</span>
         </div>
 
         <h2 style="color:var(--danger)">⚠️ Low Stock Re-order List</h2>
@@ -67,67 +61,58 @@
         <h2 style="margin-top:40px;">Recent Sales Log</h2>
         <div class="stat-card" style="padding:0;">
             <table style="box-shadow:none;">
-                <thead><tr><th>Time (+7)</th><th>Method</th><th>Amount</th></tr></thead>
+                <thead><tr><th>Time (+7)</th><th>Method</th><th>Status</th><th>Amount</th></tr></thead>
                 <tbody id="sales-list"></tbody>
             </table>
         </div>
     </main>
 
     <script>
-        // --- CONFIGURATION ---
         const u = "https://zddelixvencundnkccpq.supabase.co"; 
         const k = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpkZGVsaXh2ZW5jdW5kbmtjY3BxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUxMjQ1MzMsImV4cCI6MjA5MDcwMDUzM30.-RPvOYMLzftubrpJ4KSVrqL2eNaopjty30_TrnkGpBo";
         const _s = supabase.createClient(u, k);
         const formatLAK = (n) => new Intl.NumberFormat('lo-LA', { style: 'currency', currency: 'LAK', maximumFractionDigits: 0 }).format(n);
 
-        // --- USER MANAGEMENT & SECURITY ---
-        function initializeUser() {
-            const name = localStorage.getItem('lsm_user_name');
-            const role = localStorage.getItem('lsm_role');
-            const displayDiv = document.getElementById('display-user-name');
-
-            // Security Check
-            if (!name) {
-                window.location.href = 'login.html';
-                return;
-            } 
-            
-            if (role !== 'GM') {
-                alert("⚠️ Restricted Access: GMs Only.");
-                window.location.href = 'pos-checkout.html';
-                return;
-            }
-
-            // UI Display
-            if (displayDiv) {
-                displayDiv.innerText = name + " (" + role + ")";
-            }
-        }
-
-        function handleLogout() {
-            if (confirm("Are you sure you want to log out of LSM Retail?")) {
-                localStorage.removeItem('lsm_user_name');
-                localStorage.removeItem('lsm_role');
-                window.location.href = 'login.html';
-            }
-        }
-
-        // --- DATA INITIALIZATION ---
         async function init() {
             try {
-                // 1. Fetch Sales
-                const { data: sales, error: salesError } = await _s.from('pos_sales').select('*').order('created_at', { ascending: false });
+                // 1. Fetch Sales (Now including status)
+                const { data: sales, error: salesError } = await _s
+                    .from('pos_sales')
+                    .select('*')
+                    .order('created_at', { ascending: false });
+                
                 if (salesError) throw salesError;
 
-                let total = 0;
+                let netTotal = 0;
+                let validTransactionCount = 0;
+
                 document.getElementById('sales-list').innerHTML = sales.map(s => {
-                    total += parseFloat(s.total_amount);
+                    const isRefunded = s.status === 'Refunded';
+                    
+                    // Only add to revenue if NOT refunded
+                    if (!isRefunded) {
+                        netTotal += parseFloat(s.total_amount);
+                        validTransactionCount++;
+                    }
+
                     const time = new Date(s.created_at).toLocaleString('en-GB', { timeZone: 'Asia/Bangkok', hour: '2-digit', minute: '2-digit' });
-                    return `<tr><td>${time}</td><td><b>${s.payment_method}</b></td><td style="font-weight:700;">${formatLAK(s.total_amount)}</td></tr>`;
+                    const statusBadge = isRefunded 
+                        ? `<span class="badge-refund">REFUNDED</span>` 
+                        : `<span style="color:#10b981; font-size:10px; font-weight:800;">COMPLETED</span>`;
+
+                    return `
+                        <tr style="${isRefunded ? 'opacity: 0.6; background: #fafafa;' : ''}">
+                            <td>${time}</td>
+                            <td><b>${s.payment_method}</b></td>
+                            <td>${statusBadge}</td>
+                            <td style="font-weight:700; ${isRefunded ? 'text-decoration: line-through;' : ''}">
+                                ${formatLAK(s.total_amount)}
+                            </td>
+                        </tr>`;
                 }).join('');
                 
-                document.getElementById('today-revenue').innerText = formatLAK(total);
-                document.getElementById('sale-count').innerText = sales.length + " Transactions";
+                document.getElementById('today-revenue').innerText = formatLAK(netTotal);
+                document.getElementById('sale-count').innerText = validTransactionCount + " Valid Transactions";
 
                 // 2. Fetch Low Stock
                 const { data: prods, error: prodError } = await _s.from('pos_products').select('*');
@@ -147,10 +132,26 @@
             }
         }
 
-        // --- RUN STARTUP ---
+        // --- AUTH & LOGOUT COPIED FROM YOUR ORIGINAL ---
+        function initializeUser() {
+            const name = localStorage.getItem('lsm_user_name');
+            const role = localStorage.getItem('lsm_role');
+            if (!name) { window.location.href = 'login.html'; return; } 
+            if (role !== 'GM') { alert("⚠️ Restricted Access: GMs Only."); window.location.href = 'pos-checkout.html'; return; }
+            document.getElementById('display-user-name').innerText = name + " (" + role + ")";
+        }
+
+        function handleLogout() {
+            if (confirm("Are you sure you want to log out?")) {
+                localStorage.removeItem('lsm_user_name');
+                localStorage.removeItem('lsm_role');
+                window.location.href = 'login.html';
+            }
+        }
+
         document.addEventListener('DOMContentLoaded', () => {
-            initializeUser(); // Run security first
-            init();           // Run data fetch
+            initializeUser();
+            init();
         });
     </script>
 </body>
