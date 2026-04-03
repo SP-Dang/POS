@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>LSM POS | Order History & Returns</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Phetsarath&family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+        :root { --primary: #10b981; --danger: #ef4444; --sidebar: #0f172a; --bg: #f8fafc; --lao-font: 'Phetsarath', sans-serif; }
+        * { box-sizing: border-box; font-family: 'Plus Jakarta Sans', var(--lao-font); }
+        body { margin: 0; display: flex; background: var(--bg); height: 100vh; }
+        
+        .sidebar { width: 260px; background: var(--sidebar); color: white; padding: 30px 20px; display: flex; flex-direction: column; }
+        .nav-item { padding: 14px 18px; border-radius: 12px; color: #94a3b8; text-decoration: none; margin-bottom: 8px; font-weight: 600; display: flex; align-items: center; gap: 12px; font-size: 14px; }
+        .nav-active { background: var(--primary); color: white; }
+        
+        .main { flex: 1; padding: 40px; overflow-y: auto; }
+        .search-container { background: white; padding: 30px; border-radius: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.02); margin-bottom: 30px; display: flex; gap: 15px; align-items: center; }
+        .search-input { flex: 1; padding: 15px; border: 2px solid #f1f5f9; border-radius: 12px; font-size: 16px; outline: none; }
+        .search-input:focus { border-color: var(--primary); }
+
+        .order-card { background: white; border-radius: 20px; padding: 25px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); margin-bottom: 20px; }
+        .item-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #f1f5f9; }
+        .btn-return { background: #fee2e2; color: #b91c1c; border: none; padding: 10px 20px; border-radius: 8px; font-weight: 700; cursor: pointer; margin-top: 15px; }
+        .btn-return:hover { background: #fecaca; }
+        
+        .badge { padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 700; }
+        .badge-success { background: #dcfce7; color: #166534; }
+        .badge-refunded { background: #f1f5f9; color: #475569; }
+    </style>
+</head>
+<body>
+
+<nav class="sidebar">
+    <div style="font-weight:800; font-size:22px; color:var(--primary); margin-bottom:40px;">⚡ mPOS</div>
+    <a href="pos-checkout.html" class="nav-item">🛒 Checkout</a> 
+    <a href="pos-orders.html" class="nav-item nav-active">📄 Order History</a>
+    <a href="pos-inventory.html" class="nav-item">📦 Inventory</a>
+    <a href="pos-reports.html" class="nav-item">📊 Reports</a>
+    <div style="margin-top:auto; padding-top:20px; border-top:1px solid rgba(255,255,255,0.1);">
+        <button onclick="handleLogout()" style="background:none; border:none; color:#f87171; cursor:pointer; font-weight:600;">🚪 ອອກຈາກລະບົບ</button>
+    </div>
+</nav>
+
+<main class="main">
+    <h1>ກວດສອບບິນ ແລະ ຄືນສິນຄ້າ</h1>
+    <p style="color:#64748b;">ສະແກນບາໂຄ້ດໃນໃບບິນເພື່ອເບິ່ງລາຍລະອຽດ (Scan receipt barcode to view details)</p>
+
+    <div class="search-container">
+        <input type="text" id="receipt-scan" class="search-input" placeholder="ສະແກນບາໂຄ້ດໃບບິນຢູ່ບ່ອນນີ້..." autofocus>
+        <button onclick="lookupOrder()" style="padding:15px 30px; background:var(--sidebar); color:white; border-radius:12px; border:none; cursor:pointer; font-weight:600;">ຄົ້ນຫາ</button>
+    </div>
+
+    <div id="order-result">
+        </div>
+</main>
+
+<script>
+    const u = "https://zddelixvencundnkccpq.supabase.co"; 
+    const k = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpkZGVsaXh2ZW5jdW5kbmtjY3BxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUxMjQ1MzMsImV4cCI6MjA5MDcwMDUzM30.-RPvOYMLzftubrpJ4KSVrqL2eNaopjty30_TrnkGpBo";
+    const _s = supabase.createClient(u, k);
+
+    // Auto-search when scanner enters text
+    document.getElementById('receipt-scan').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') lookupOrder();
+    });
+
+    async function lookupOrder() {
+        const code = document.getElementById('receipt-scan').value.trim();
+        if (!code) return;
+
+        // Since we use the first 8 chars of ID for the barcode, we use 'ilike' to find it
+        const { data, error } = await _s
+            .from('pos_sales')
+            .select('*')
+            .ilike('id', `${code}%`)
+            .maybeSingle();
+
+        if (error) return alert("Error: " + error.message);
+        
+        const container = document.getElementById('order-result');
+        if (!data) {
+            container.innerHTML = `<p style="text-align:center; padding:40px; color:#94a3b8;">❌ ບໍ່ພົບຂໍ້ມູນບິນນີ້ (Receipt not found)</p>`;
+            return;
+        }
+
+        const date = new Date(data.created_at).toLocaleString('lo-LA');
+        
+        container.innerHTML = `
+            <div class="order-card">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                    <div>
+                        <span class="badge badge-success">ຊຳລະແລ້ວ</span>
+                        <h2 style="margin:10px 0 0 0;">ບິນເລກທີ: #${data.id.substring(0,8).toUpperCase()}</h2>
+                        <small style="color:#64748b;">${date}</small>
+                    </div>
+                    <div style="text-align:right">
+                        <div style="font-size:24px; font-weight:800; color:var(--primary);">₭${data.total_amount.toLocaleString()}</div>
+                        <small>${data.payment_method}</small>
+                    </div>
+                </div>
+
+                <div style="border-top: 1px solid #f1f5f9; padding-top:15px;">
+                    <h4 style="margin-bottom:10px;">ລາຍການສິນຄ້າ:</h4>
+                    ${data.items.map(item => `
+                        <div class="item-row">
+                            <span>${item.name} <b>x${item.qty}</b></span>
+                            <span>₭${(item.retail_price * item.qty).toLocaleString()}</span>
+                        </div>
+                    `).join('')}
+                </div>
+
+                <button class="btn-return" onclick="processReturn('${data.id}')">🔄 ຄືນສິນຄ້າ ແລະ ເພີ່ມສະຕັອກ (Process Return)</button>
+            </div>
+        `;
+    }
+
+    async function processReturn(orderId) {
+        if (!confirm("ທ່ານຕ້ອງການຢືນຢັນການຄືນສິນຄ້າ ແລະ ເພີ່ມສະຕັອກກັບຄືນບໍ່? (Confirm Return & Restock?)")) return;
+
+        // 1. Get the order details again to get items
+        const { data: order } = await _s.from('pos_sales').select('*').eq('id', orderId).single();
+        
+        // 2. Loop through items and update stock in pos_products
+        for (const item of order.items) {
+            // We need to fetch current stock first
+            const { data: prod } = await _s.from('pos_products').select('stock_qty').eq('barcode', item.barcode).single();
+            if (prod) {
+                const newQty = prod.stock_qty + item.qty;
+                await _s.from('pos_products').update({ stock_qty: newQty }).eq('barcode', item.barcode);
+            }
+        }
+
+        // 3. Delete the sale record (or you could update status to 'Refunded' if you have that column)
+        const { error: delError } = await _s.from('pos_sales').delete().eq('id', orderId);
+
+        if (!delError) {
+            alert("✅ ສຳເລັດ! ສິນຄ້າຖືກເພີ່ມເຂົ້າສະຕັອກແລ້ວ. (Return Complete & Stock Updated)");
+            document.getElementById('order-result').innerHTML = "";
+            document.getElementById('receipt-scan').value = "";
+            document.getElementById('receipt-scan').focus();
+        } else {
+            alert("Error processing return: " + delError.message);
+        }
+    }
+
+    function handleLogout() {
+        localStorage.clear();
+        window.location.href = 'login.html';
+    }
+</script>
+</body>
+</html>
