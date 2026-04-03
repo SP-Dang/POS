@@ -69,10 +69,23 @@
 
 <nav class="sidebar">
     <div class="logo"><span>⚡</span> mPOS</div>
-    <a href="index.html" class="nav-item">📊 Dashboard</a> <a href="pos-checkout.html" class="nav-item">🛒 Checkout</a> <a href="pos-inventory.html" class="nav-item active">📦 Inventory</a>
+    
+    <a href="index.html" class="nav-item">📊 Dashboard</a> 
+    <a href="pos-checkout.html" class="nav-item">🛒 Checkout</a> 
+    <a href="pos-inventory.html" class="nav-item active">📦 Inventory</a>
     <a href="pos-reports.html" class="nav-item">📊 Reports</a>
     <a href="#" class="nav-item">👥 Customers</a>
+    
     <a href="#" class="nav-item" style="margin-top:auto">⚙️ Settings</a>
+    
+    <div class="user-box" style="padding: 15px; border-top: 1px solid rgba(255,255,255,0.1); margin-top: 10px;">
+        <div style="font-size: 0.8rem; color: #94a3b8; margin-bottom: 5px;">LOGGED IN AS:</div>
+        <div id="display-user-name" style="font-weight: 600; color: white; margin-bottom: 15px;">Loading...</div>
+        
+        <button onclick="handleLogout()" class="nav-item" style="background: rgba(239, 68, 68, 0.1); color: #ef4444; border: none; width: 100%; text-align: left; cursor: pointer; border-radius: 8px;">
+            🚪 Log Out
+        </button>
+    </div>
 </nav>
 
     <main class="main">
