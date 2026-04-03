@@ -65,24 +65,27 @@
         if (e.key === 'Enter') lookupOrder();
     });
 
-    async function lookupOrder() {
-        const code = document.getElementById('receipt-scan').value.trim();
-        if (!code) return;
+async function lookupOrder() {
+    const code = document.getElementById('receipt-scan').value.trim();
+    if (!code) return;
 
-        // Since we use the first 8 chars of ID for the barcode, we use 'ilike' to find it
-        const { data, error } = await _s
-            .from('pos_sales')
-            .select('*')
-            .ilike('id::text', `${code}%`)
-            .maybeSingle();
+    // Use id::text to allow string searching on a UUID column
+    const { data, error } = await _s
+        .from('pos_sales')
+        .select('*')
+        .ilike('id::text', `${code}%`) 
+        .maybeSingle();
 
-        if (error) return alert("Error: " + error.message);
-        
-        const container = document.getElementById('order-result');
-        if (!data) {
-            container.innerHTML = `<p style="text-align:center; padding:40px; color:#94a3b8;">❌ ບໍ່ພົບຂໍ້ມູນບິນນີ້ (Receipt not found)</p>`;
-            return;
-        }
+    if (error) {
+        console.error(error);
+        return alert("Error: " + error.message);
+    }
+    
+    const container = document.getElementById('order-result');
+    if (!data) {
+        container.innerHTML = `<p style="text-align:center; padding:40px; color:#94a3b8;">❌ ບໍ່ພົບຂໍ້ມູນບິນນີ້ (Receipt not found)</p>`;
+        return;
+    }
 
         const date = new Date(data.created_at).toLocaleString('lo-LA');
         
