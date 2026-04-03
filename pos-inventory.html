@@ -106,7 +106,14 @@
         const u = "https://zddelixvencundnkccpq.supabase.co"; 
         const k = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpkZGVsaXh2ZW5jdW5kbmtjY3BxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUxMjQ1MzMsImV4cCI6MjA5MDcwMDUzM30.-RPvOYMLzftubrpJ4KSVrqL2eNaopjty30_TrnkGpBo";
         const _s = supabase.createClient(u, k);
+// Security Guard: Redirect non-GMs away from management pages
+const userRole = localStorage.getItem('lsm_role');
+const userName = localStorage.getItem('lsm_user_name');
 
+if (!userName || userRole !== 'GM') {
+    alert("⚠️ Restricted Access: GMs Only.");
+    window.location.href = 'pos-checkout.html';
+}
         function log(msg) { document.getElementById('debug').innerText = "Log: " + msg; }
 
         // Format LAK Currency
