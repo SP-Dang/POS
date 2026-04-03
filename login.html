@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>LSM Retail | Secure Access</title>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
     <style>
         :root { --primary: #10b981; --sidebar: #0f172a; --bg: #f8fafc; --text: #1e293b; }
@@ -81,7 +81,12 @@
 <script>
     const u = "https://lophnkwkmkgkrdfxgtmt.supabase.co"; 
     const k = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxvcGhua3drbWtna3JkZnhndG10Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3ODIxNTQsImV4cCI6MjA5MDM1ODE1NH0.ITu8VpDZy1pnJgafBYkSVOGTK0PHKkD7YN0bdH2UT_I";
-    const _s = supabase.createClient(u, k);
+    const _s = supabase.createClient(u, k, {
+  auth: {
+    persistSession: false, // Disables the "Tracking" cookies that browsers hate
+    autoRefreshToken: false
+  }
+});
 
 async function handleLogin() {
     const user = document.getElementById('user-select').value;
