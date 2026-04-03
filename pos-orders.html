@@ -73,7 +73,7 @@
         const { data, error } = await _s
             .from('pos_sales')
             .select('*')
-            .ilike('id', `${code}%`)
+            .ilike('id::text', `${code}%`)
             .maybeSingle();
 
         if (error) return alert("Error: " + error.message);
