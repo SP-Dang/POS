@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>LSM Retail | Secure Access</title>
-    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
     <style>
         :root { --primary: #10b981; --sidebar: #0f172a; --bg: #f8fafc; --text: #1e293b; }
@@ -28,13 +27,13 @@
         h1 { font-size: 20px; color: var(--sidebar); margin-bottom: 8px; }
         p { color: #94a3b8; font-size: 14px; margin-bottom: 30px; }
 
-        label { display: block; text-align: left; font-size: 12px; font-weight: 700; color: #64748b; margin-bottom: 8px; text-transform: uppercase; }
+        label { display: block; text-align: left; font-size: 11px; font-weight: 800; color: #64748b; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.05em; }
         
         select, input { 
             width: 100%; padding: 14px; margin-bottom: 20px; 
             border: 1px solid #e2e8f0; border-radius: 12px; 
             font-size: 16px; font-weight: 600; color: var(--sidebar);
-            outline: none; transition: 0.2s;
+            outline: none; transition: 0.2s; background: #fff;
         }
 
         select:focus, input:focus { border-color: var(--primary); box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.1); }
@@ -48,7 +47,7 @@
         .btn-login:hover { transform: translateY(-2px); box-shadow: 0 8px 15px rgba(16, 185, 129, 0.2); }
         .btn-login:disabled { background: #cbd5e1; cursor: not-allowed; transform: none; }
 
-        #msg { margin-top: 20px; font-size: 14px; min-height: 20px; transition: 0.3s; }
+        #msg { margin-top: 20px; font-size: 14px; min-height: 20px; font-weight: 600; }
     </style>
 </head>
 <body>
@@ -61,7 +60,7 @@
     <label>Staff Member</label>
     <select id="user-select">
         <optgroup label="Management">
-            <option value="GM">General Manager (Full Access)</option>
+            <option value="GM">General Manager</option>
         </optgroup>
         <optgroup label="Cashiers">
             <option value="Somsak">Somsak</option>
@@ -78,75 +77,85 @@
     <div id="msg"></div>
 </div>
 
-<script>
+<script type="module">
+    // 1. Import Supabase as a modern Module to bypass tracking blocks
+    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm'
+
     const u = "https://lophnkwkmkgkrdfxgtmt.supabase.co"; 
     const k = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxvcGhua3drbWtna3JkZnhndG10Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3ODIxNTQsImV4cCI6MjA5MDM1ODE1NH0.ITu8VpDZy1pnJgafBYkSVOGTK0PHKkD7YN0bdH2UT_I";
-    const _s = supabase.createClient(u, k, {
-  auth: {
-    persistSession: false, // Disables the "Tracking" cookies that browsers hate
-    autoRefreshToken: false
-  }
-});
+    
+    // 2. Initialize with persistSession: false to avoid "Third Party Cookie" issues
+    const _s = createClient(u, k, {
+        auth: { 
+            persistSession: false,
+            autoRefreshToken: false 
+        }
+    });
 
-async function handleLogin() {
-    const userSelect = document.getElementById('user-select').value.trim();
-    const pinInput = document.getElementById('pin-input').value.trim();
-    const btn = document.getElementById('login-btn');
-    const msg = document.getElementById('msg');
+    // 3. Attach the function to 'window' so the button 'onclick' can find it
+    window.handleLogin = async function() {
+        const userSelect = document.getElementById('user-select').value.trim();
+        const pinInput = document.getElementById('pin-input').value.trim();
+        const btn = document.getElementById('login-btn');
+        const msg = document.getElementById('msg');
 
-    btn.disabled = true;
-    btn.innerText = "VERIFYING...";
-
-    try {
-        // STEP 1: Debug check - Can we even see Somsak?
-        const { data: userCheck, error: checkError } = await _s
-            .from('staff')
-            .select('*')
-            .eq('name', userSelect);
-        
-        if (checkError) {
-            console.error("Database Connection Error:", checkError.message);
-            msg.innerText = "Error: " + checkError.message;
-            btn.disabled = false;
+        if (pinInput.length < 4) {
+            msg.style.color = "#ef4444";
+            msg.innerText = "⚠️ Please enter 4-digit PIN";
             return;
         }
 
-        console.log("Database Debug - Users found with this name:", userCheck);
+        btn.disabled = true;
+        btn.innerText = "AUTHENTICATING...";
+        msg.innerText = "";
 
-        // STEP 2: Strict Login Check
-        const { data, error } = await _s
-            .from('staff')
-            .select('*')
-            .eq('name', userSelect)
-            .eq('pin', pinInput)
-            .maybeSingle();
+        try {
+            // Precise query for Name and PIN
+            const { data, error } = await _s
+                .from('staff')
+                .select('*')
+                .eq('name', userSelect)
+                .eq('pin', pinInput)
+                .maybeSingle();
 
-        if (data) {
-            console.log("✅ Match Found!", data);
-            localStorage.setItem('lsm_user_name', data.name);
-            localStorage.setItem('lsm_role', data.role);
-            
-            msg.style.color = "#10b981";
-            msg.innerText = "✅ Success! Redirecting...";
+            if (error) throw error;
 
-            setTimeout(() => {
-                window.location.href = (data.role === 'GM') ? 'pos-inventory.html' : 'pos-checkout.html';
-            }, 800);
-        } else {
-            console.warn("❌ Failed. Input Name:", userSelect, "| Input PIN:", pinInput);
+            if (data) {
+                // Store session locally
+                localStorage.setItem('lsm_user_name', data.name);
+                localStorage.setItem('lsm_role', data.role);
+                
+                msg.style.color = "#10b981";
+                msg.innerText = "✅ Welcome, " + data.name + "!";
+
+                setTimeout(() => {
+                    // Redirect based on role
+                    if (data.role === 'GM') {
+                        window.location.href = 'pos-inventory.html';
+                    } else {
+                        window.location.href = 'pos-checkout.html';
+                    }
+                }, 800);
+
+            } else {
+                msg.style.color = "#ef4444";
+                msg.innerText = "❌ Invalid PIN for " + userSelect;
+                btn.disabled = false;
+                btn.innerText = "ACCESS SYSTEM";
+            }
+
+        } catch (err) {
+            console.error("Login Failed:", err);
             msg.style.color = "#ef4444";
-            msg.innerText = "❌ Invalid PIN for " + userSelect;
+            msg.innerText = "System Blocked. Try turning off browser 'Shields'.";
             btn.disabled = false;
             btn.innerText = "ACCESS SYSTEM";
         }
-    } catch (err) {
-        console.error("Critical Error:", err);
-        btn.disabled = false;
-    }
-}
-    // Allow Enter key to submit
+    };
+
+    // 4. Handle 'Enter' key press
     document.getElementById('pin-input').addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') handleLogin();
+        if (e.key === 'Enter') window.handleLogin();
     });
 </script>
 
