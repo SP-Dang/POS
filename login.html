@@ -3,48 +3,39 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LSM Retail | Secure Login</title>
+    <title>LSM Retail | Login</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
     <style>
-        :root { --primary: #10b981; --dark: #0f172a; --bg: #f8fafc; }
+        :root { --primary: #10b981; --bg: #f8fafc; }
         body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
         .login-card { background: white; padding: 40px; border-radius: 24px; box-shadow: 0 20px 50px rgba(0,0,0,0.05); width: 100%; max-width: 360px; text-align: center; border: 1px solid #e2e8f0; }
-        .logo { font-weight: 800; font-size: 26px; color: var(--primary); margin-bottom: 8px; letter-spacing: -1px; }
-        p { color: #64748b; font-size: 14px; margin-bottom: 30px; }
-        
+        .logo { font-weight: 800; font-size: 26px; color: var(--primary); margin-bottom: 20px; }
         .input-group { text-align: left; margin-bottom: 20px; }
         label { display: block; font-size: 12px; font-weight: 700; color: #475569; margin-bottom: 8px; text-transform: uppercase; }
-        select, input { width: 100%; padding: 14px; border: 2px solid #f1f5f9; border-radius: 12px; font-size: 16px; font-weight: 600; outline: none; transition: 0.2s; box-sizing: border-box; }
-        select:focus, input:focus { border-color: var(--primary); background: #f0fdf4; }
-        
-        .btn-login { width: 100%; padding: 16px; background: var(--primary); color: white; border: none; border-radius: 14px; font-weight: 800; cursor: pointer; font-size: 16px; transition: 0.3s; margin-top: 10px; }
-        .btn-login:hover { transform: translateY(-2px); box-shadow: 0 10px 20px rgba(16, 185, 129, 0.2); }
-        .btn-login:disabled { background: #cbd5e1; cursor: not-allowed; transform: none; }
-        
-        #msg { margin-top: 20px; font-size: 14px; font-weight: 600; min-height: 20px; }
+        select, input { width: 100%; padding: 14px; border: 2px solid #f1f5f9; border-radius: 12px; font-size: 16px; font-weight: 600; outline: none; box-sizing: border-box; }
+        .btn-login { width: 100%; padding: 16px; background: var(--primary); color: white; border: none; border-radius: 14px; font-weight: 800; cursor: pointer; font-size: 16px; margin-top: 10px; }
+        #msg { margin-top: 20px; font-size: 14px; font-weight: 600; }
     </style>
 </head>
 <body>
 
 <div class="login-card">
     <div class="logo">LSM RETAIL</div>
-    <p>Sign in to your workstation</p>
-
+    
     <div class="input-group">
-        <label>Select Position</label>
-        <select id="role-select">
-            <option value="GM">GENERAL MANAGER</option>
-            <option value="CASHIER">CASHIER (Somsak/Keo/Bouapha)</option>
+        <label>Select Your Name</label>
+        <select id="name-select">
+            <option value="">Loading staff...</option>
         </select>
     </div>
 
     <div class="input-group">
-        <label>Security PIN</label>
-        <input type="password" id="pin-input" placeholder="••••" maxlength="4" inputmode="numeric">
+        <label>Enter PIN</label>
+        <input type="password" id="pin-input" placeholder="••••" maxlength="4">
     </div>
 
-    <button class="btn-login" id="login-btn" onclick="handleLogin()">SECURE LOGIN</button>
+    <button class="btn-login" id="login-btn" onclick="handleLogin()">ENTER WORKSTATION</button>
     <div id="msg"></div>
 </div>
 
@@ -53,63 +44,78 @@
     const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxvcGhua3drbWtna3JkZnhndG10Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3ODIxNTQsImV4cCI6MjA5MDM1ODE1NH0.ITu8VpDZy1pnJgafBYkSVOGTK0PHKkD7YN0bdH2UT_I";
     const _supabase = supabase.createClient(SB_URL, SB_KEY);
 
+    // 1. Load names as soon as the page opens
+    async function loadStaff() {
+        try {
+            const { data, error } = await _supabase
+                .from('staff')
+                .select('name')
+                .order('name', { ascending: true });
+
+            if (error) throw error;
+
+            const select = document.getElementById('name-select');
+            select.innerHTML = '<option value="">-- Choose Name --</option>';
+            
+            data.forEach(person => {
+                const opt = document.createElement('option');
+                opt.value = person.name;
+                opt.textContent = person.name;
+                select.appendChild(opt);
+            });
+        } catch (err) {
+            document.getElementById('msg').innerText = "Error loading staff. Check Supabase connection.";
+        }
+    }
+
+    // 2. Handle the Login
     async function handleLogin() {
-        const role = document.getElementById('role-select').value;
+        const name = document.getElementById('name-select').value;
         const pin = document.getElementById('pin-input').value.trim();
         const btn = document.getElementById('login-btn');
         const msg = document.getElementById('msg');
 
-        if (!pin) {
-            msg.style.color = "#ef4444";
-            msg.innerText = "Please enter your PIN";
+        if (!name || !pin) {
+            msg.innerText = "Select name and enter PIN";
             return;
         }
 
         btn.disabled = true;
         btn.innerText = "VERIFYING...";
-        msg.innerText = "";
 
         try {
-            // Rebuilt query logic to be extremely strict
             const { data, error } = await _supabase
                 .from('staff')
-                .select('name, role')
-                .eq('role', role)
+                .select('name, role, pin')
+                .eq('name', name)
                 .eq('pin', pin)
                 .maybeSingle();
 
             if (error) throw error;
 
             if (data) {
-                // Save user session
                 localStorage.setItem('lsm_user_name', data.name);
                 localStorage.setItem('lsm_role', data.role);
-
                 msg.style.color = "#10b981";
-                msg.innerText = "✅ Access Granted! Welcome " + data.name;
-
+                msg.innerText = "✅ Success! Redirecting...";
+                
                 setTimeout(() => {
                     window.location.href = (data.role === 'GM') ? 'pos-inventory.html' : 'pos-checkout.html';
-                }, 1000);
+                }, 800);
             } else {
                 msg.style.color = "#ef4444";
-                msg.innerText = "❌ Invalid PIN for " + role;
+                msg.innerText = "❌ Incorrect PIN for " + name;
                 btn.disabled = false;
-                btn.innerText = "SECURE LOGIN";
+                btn.innerText = "ENTER WORKSTATION";
             }
         } catch (err) {
-            msg.style.color = "#ef4444";
-            msg.innerText = "Connection Error. Please check internet.";
+            msg.innerText = "System error. Please try again.";
             btn.disabled = false;
-            btn.innerText = "SECURE LOGIN";
-            console.error(err);
         }
     }
 
-    // Allow "Enter" key to login
-    document.getElementById('pin-input').addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') handleLogin();
-    });
+    // Initialize the list
+    loadStaff();
 </script>
 
 </body>
