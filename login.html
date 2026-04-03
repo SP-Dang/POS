@@ -40,17 +40,19 @@
 </div>
 
 <script>
-    const SB_URL = "https://lophnkwkmkgkrdfxgtmt.supabase.co";
-    const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxvcGhua3drbWtna3JkZnhndG10Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3ODIxNTQsImV4cCI6MjA5MDM1ODE1NH0.ITu8VpDZy1pnJgafBYkSVOGTK0PHKkD7YN0bdH2UT_I";
+    // UPDATED FOR YOUR NEW PROJECT
+    const SB_URL = "https://zddelixvencundnkccpq.supabase.co";
+    const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpkZGVsaXh2ZW5jdW5kbmtjY3BxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUxMjQ1MzMsImV4cCI6MjA5MDcwMDUzM30.-RPvOYMLzftubrpJ4KSVrqL2eNaopjty30_TrnkGpBo";
+    
     const _supabase = supabase.createClient(SB_URL, SB_KEY);
 
-    // 1. Load names as soon as the page opens
+    // This function now points to the new project and the new table
     async function loadStaff() {
-    try {
-        const { data, error } = await _supabase
-            .from('pos_staff') // Changed from 'staff' to 'pos_staff'
-            .select('name')
-            .order('name', { ascending: true });
+        try {
+            const { data, error } = await _supabase
+                .from('pos_staff') 
+                .select('name')
+                .order('name', { ascending: true });
 
             if (error) throw error;
 
@@ -64,32 +66,25 @@
                 select.appendChild(opt);
             });
         } catch (err) {
-            document.getElementById('msg').innerText = "Error loading staff. Check Supabase connection.";
+            console.error("Connection Error:", err);
+            document.getElementById('msg').innerText = "Database Connection Error.";
         }
     }
 
-    // 2. Handle the Login
-  async function handleLogin() {
-    // ... setup code ...
-    try {
-        const { data, error } = await _supabase
-            .from('pos_staff') // Changed from 'staff' to 'pos_staff'
-            .select('name, role, pin')
-            .eq('name', name)
-            .eq('pin', pin)
-            .maybeSingle();
+    async function handleLogin() {
+        const name = document.getElementById('name-select').value;
+        const pin = document.getElementById('pin-input').value.trim();
+        const btn = document.getElementById('login-btn');
+        const msg = document.getElementById('msg');
 
-        if (!name || !pin) {
-            msg.innerText = "Select name and enter PIN";
-            return;
-        }
+        if (!name || !pin) return;
 
         btn.disabled = true;
         btn.innerText = "VERIFYING...";
 
         try {
             const { data, error } = await _supabase
-                .from('staff')
+                .from('pos_staff')
                 .select('name, role, pin')
                 .eq('name', name)
                 .eq('pin', pin)
@@ -100,27 +95,19 @@
             if (data) {
                 localStorage.setItem('lsm_user_name', data.name);
                 localStorage.setItem('lsm_role', data.role);
-                msg.style.color = "#10b981";
-                msg.innerText = "✅ Success! Redirecting...";
-                
-                setTimeout(() => {
-                    window.location.href = (data.role === 'GM') ? 'pos-inventory.html' : 'pos-checkout.html';
-                }, 800);
+                window.location.href = (data.role === 'GM') ? 'pos-inventory.html' : 'pos-checkout.html';
             } else {
                 msg.style.color = "#ef4444";
-                msg.innerText = "❌ Incorrect PIN for " + name;
+                msg.innerText = "❌ Incorrect PIN";
                 btn.disabled = false;
                 btn.innerText = "ENTER WORKSTATION";
             }
         } catch (err) {
-            msg.innerText = "System error. Please try again.";
             btn.disabled = false;
         }
     }
 
-    // Initialize the list
     loadStaff();
 </script>
-
 </body>
 </html>
