@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LSM Retail | Secure Access</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+        :root { --primary: #10b981; --sidebar: #0f172a; --bg: #f8fafc; --text: #1e293b; }
+        * { box-sizing: border-box; font-family: 'Plus Jakarta Sans', sans-serif; }
+        
+        body { 
+            margin: 0; background: var(--bg); height: 100vh; 
+            display: flex; justify-content: center; align-items: center; 
+            background-image: radial-gradient(circle at 2px 2px, #e2e8f0 1px, transparent 0);
+            background-size: 40px 40px;
+        }
+
+        .login-card { 
+            background: white; padding: 40px; border-radius: 24px; 
+            box-shadow: 0 20px 50px rgba(15, 23, 42, 0.08); 
+            width: 100%; max-width: 400px; text-align: center;
+            border: 1px solid #f1f5f9;
+        }
+
+        .logo { font-weight: 800; font-size: 28px; color: var(--primary); margin-bottom: 10px; letter-spacing: -1px; }
+        h1 { font-size: 20px; color: var(--sidebar); margin-bottom: 8px; }
+        p { color: #94a3b8; font-size: 14px; margin-bottom: 30px; }
+
+        label { display: block; text-align: left; font-size: 12px; font-weight: 700; color: #64748b; margin-bottom: 8px; text-transform: uppercase; }
+        
+        select, input { 
+            width: 100%; padding: 14px; margin-bottom: 20px; 
+            border: 1px solid #e2e8f0; border-radius: 12px; 
+            font-size: 16px; font-weight: 600; color: var(--sidebar);
+            outline: none; transition: 0.2s;
+        }
+
+        select:focus, input:focus { border-color: var(--primary); box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.1); }
+
+        .btn-login { 
+            width: 100%; padding: 16px; background: var(--primary); color: white; 
+            border: none; border-radius: 14px; font-weight: 800; cursor: pointer; 
+            font-size: 16px; transition: 0.3s; margin-top: 10px;
+        }
+
+        .btn-login:hover { transform: translateY(-2px); box-shadow: 0 8px 15px rgba(16, 185, 129, 0.2); }
+        .btn-login:disabled { background: #cbd5e1; cursor: not-allowed; transform: none; }
+
+        #msg { margin-top: 20px; font-size: 14px; min-height: 20px; transition: 0.3s; }
+    </style>
+</head>
+<body>
+
+<div class="login-card">
+    <div class="logo">LSM RETAIL</div>
+    <h1>Secure Login</h1>
+    <p>Select your name and enter your 4-digit PIN</p>
+
+    <label>Staff Member</label>
+    <select id="user-select">
+        <optgroup label="Management">
+            <option value="GM">General Manager (Full Access)</option>
+        </optgroup>
+        <optgroup label="Cashiers">
+            <option value="Somsak">Somsak</option>
+            <option value="Keo">Keo</option>
+            <option value="Bouapha">Bouapha</option>
+        </optgroup>
+    </select>
+
+    <label>Security PIN</label>
+    <input type="password" id="pin-input" placeholder="••••" maxlength="4" inputmode="numeric">
+
+    <button class="btn-login" id="login-btn" onclick="handleLogin()">ACCESS SYSTEM</button>
+    
+    <div id="msg"></div>
+</div>
+
+<script>
+    const u = "https://lophnkwkmkgkrdfxgtmt.supabase.co"; 
+    const k = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxvcGhua3drbWtna3JkZnhndG10Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3ODIxNTQsImV4cCI6MjA5MDM1ODE1NH0.ITu8VpDZy1pnJgafBYkSVOGTK0PHKkD7YN0bdH2UT_I";
+    const _s = supabase.createClient(u, k);
+
+    async function handleLogin() {
+        const user = document.getElementById('user-select').value;
+        const pin = document.getElementById('pin-input').value;
+        const btn = document.getElementById('login-btn');
+        const msg = document.getElementById('msg');
+
+        if (pin.length < 4) {
+            msg.style.color = "#ef4444";
+            msg.innerText = "⚠️ Please enter a 4-digit PIN";
+            return;
+        }
+
+        btn.disabled = true;
+        btn.innerText = "AUTHENTICATING...";
+        msg.innerText = "";
+
+        try {
+            // Mapping names to roles for the database check
+            // If it's GM, role is GM. Otherwise, it's a Cashier.
+            const targetRole = (user === "GM") ? "GM" : "CASHIER";
+
+            const { data, error } = await _s
+                .from('staff')
+                .select('name, role')
+                .eq('name', user)
+                .eq('pin', pin)
+                .maybeSingle();
+
+            if (error) throw error;
+
+            if (data) {
+                // Store session info
+                localStorage.setItem('lsm_user_name', data.name);
+                localStorage.setItem('lsm_role', data.role);
+
+                msg.style.color = "#10b981";
+                msg.innerText = "✅ Welcome, " + data.name + "!";
+
+                setTimeout(() => {
+                    if (data.role === 'GM') {
+                        window.location.href = 'pos-inventory.html'; // Full Access starts at Inventory
+                    } else {
+                        window.location.href = 'pos-checkout.html'; // Cashiers go straight to Checkout
+                    }
+                }, 800);
+
+            } else {
+                msg.style.color = "#ef4444";
+                msg.innerText = "❌ Invalid PIN for " + user;
+                btn.disabled = false;
+                btn.innerText = "ACCESS SYSTEM";
+            }
+
+        } catch (err) {
+            msg.style.color = "#ef4444";
+            msg.innerText = "System Error: Connection failed";
+            btn.disabled = false;
+            btn.innerText = "ACCESS SYSTEM";
+        }
+    }
+
+    // Allow Enter key to submit
+    document.getElementById('pin-input').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') handleLogin();
+    });
+</script>
+
+</body>
+</html>
