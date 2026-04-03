@@ -116,32 +116,48 @@ async function lookupOrder() {
         </div>
     `;
 }
+async function processReturn(orderId) {
+    if (!confirm("ຢືນຢັນການຄືນສິນຄ້າ? (Confirm Return?)")) return;
 
-    async function processReturn(orderId) {
-        if (!confirm("ທ່ານຕ້ອງການຢືນຢັນການຄືນສິນຄ້າ ແລະ ເພີ່ມສະຕັອກກັບຄືນບໍ່?")) return;
+    // 1. Get the order details to find items to restock
+    const { data: order, error: fetchErr } = await _s
+        .from('pos_sales')
+        .select('*')
+        .eq('id', orderId)
+        .single();
+    
+    if (fetchErr) return alert("Error fetching order: " + fetchErr.message);
 
-        const { data: order } = await _s.from('pos_sales').select('*').eq('id', orderId).single();
-        
-        for (const item of order.items) {
-            const { data: prod } = await _s.from('pos_products').select('stock_qty').eq('barcode', item.barcode).single();
-            if (prod) {
-                const newQty = prod.stock_qty + item.qty;
-                await _s.from('pos_products').update({ stock_qty: newQty }).eq('barcode', item.barcode);
-            }
-        }
-
-        const { error: delError } = await _s.from('pos_sales').delete().eq('id', orderId);
-
-        if (!delError) {
-            alert("✅ ສຳເລັດ! ສິນຄ້າຖືກເພີ່ມເຂົ້າສະຕັອກແລ້ວ.");
-            document.getElementById('order-result').innerHTML = "";
-            document.getElementById('receipt-scan').value = "";
-            document.getElementById('receipt-scan').focus();
-        } else {
-            alert("Error: " + delError.message);
+    // 2. Loop through items and add back to stock
+    for (const item of order.items) {
+        const { data: prod } = await _s
+            .from('pos_products')
+            .select('stock_qty')
+            .eq('barcode', item.barcode)
+            .single();
+            
+        if (prod) {
+            const newQty = prod.stock_qty + item.qty;
+            await _s.from('pos_products')
+                .update({ stock_qty: newQty })
+                .eq('barcode', item.barcode);
         }
     }
 
+    // 3. CHANGE: Update status to 'Refunded' instead of deleting
+    const { error: updateErr } = await _s
+        .from('pos_sales')
+        .update({ status: 'Refunded' })
+        .eq('id', orderId);
+
+    if (!updateErr) {
+        alert("✅ ສຳເລັດ! ສະຖານະປ່ຽນເປັນ 'ຄືນສິນຄ້າ' ແລະ ເພີ່ມສະຕັອກແລ້ວ.");
+        lookupOrder(); // Refresh the view to show the new status
+    } else {
+        alert("Error updating status: " + updateErr.message);
+    }
+}
+    
     function handleLogout() {
         localStorage.clear();
         window.location.href = 'login.html';
