@@ -46,11 +46,11 @@
 
     // 1. Load names as soon as the page opens
     async function loadStaff() {
-        try {
-            const { data, error } = await _supabase
-                .from('staff')
-                .select('name')
-                .order('name', { ascending: true });
+    try {
+        const { data, error } = await _supabase
+            .from('pos_staff') // Changed from 'staff' to 'pos_staff'
+            .select('name')
+            .order('name', { ascending: true });
 
             if (error) throw error;
 
@@ -69,11 +69,15 @@
     }
 
     // 2. Handle the Login
-    async function handleLogin() {
-        const name = document.getElementById('name-select').value;
-        const pin = document.getElementById('pin-input').value.trim();
-        const btn = document.getElementById('login-btn');
-        const msg = document.getElementById('msg');
+  async function handleLogin() {
+    // ... setup code ...
+    try {
+        const { data, error } = await _supabase
+            .from('pos_staff') // Changed from 'staff' to 'pos_staff'
+            .select('name, role, pin')
+            .eq('name', name)
+            .eq('pin', pin)
+            .maybeSingle();
 
         if (!name || !pin) {
             msg.innerText = "Select name and enter PIN";
