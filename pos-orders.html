@@ -63,59 +63,59 @@
     });
 
     // --- UPDATED LOOKUP FUNCTION ---
-    async function lookupOrder() {
-        const code = document.getElementById('receipt-scan').value.trim();
-        if (!code) return;
+async function lookupOrder() {
+    const code = document.getElementById('receipt-scan').value.trim();
+    if (!code) return;
 
-        // Use the generic .filter() method which handles the UUID to text conversion 
-        // behind the scenes more gracefully than .ilike() on a raw UUID column.
-        const { data, error } = await _s
-            .from('pos_sales')
-            .select('*')
-            .filter('id', 'ilike', `${code}%`)
-            .maybeSingle();
+    // We call the SQL function we just created
+    const { data, error } = await _s
+        .rpc('search_sales_by_id', { search_text: code });
 
-        if (error) {
-            console.error("Database Error:", error);
-            return alert("Error: " + error.message);
-        }
-        
-        const container = document.getElementById('order-result');
-        if (!data) {
-            container.innerHTML = `<p style="text-align:center; padding:40px; color:#94a3b8;">❌ ບໍ່ພົບຂໍ້ມູນບິນນີ້ (Receipt not found)</p>`;
-            return;
-        }
-
-        const date = new Date(data.created_at).toLocaleString('lo-LA');
-        
-        container.innerHTML = `
-            <div class="order-card">
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
-                    <div>
-                        <span class="badge badge-success">ຊຳລະແລ້ວ</span>
-                        <h2 style="margin:10px 0 0 0;">ບິນເລກທີ: #${data.id.substring(0,8).toUpperCase()}</h2>
-                        <small style="color:#64748b;">${date}</small>
-                    </div>
-                    <div style="text-align:right">
-                        <div style="font-size:24px; font-weight:800; color:var(--primary);">₭${data.total_amount.toLocaleString()}</div>
-                        <small>${data.payment_method}</small>
-                    </div>
-                </div>
-
-                <div style="border-top: 1px solid #f1f5f9; padding-top:15px;">
-                    <h4 style="margin-bottom:10px;">ລາຍການສິນຄ້າ:</h4>
-                    ${data.items.map(item => `
-                        <div class="item-row">
-                            <span>${item.name} <b>x${item.qty}</b></span>
-                            <span>₭${(item.retail_price * item.qty).toLocaleString()}</span>
-                        </div>
-                    `).join('')}
-                </div>
-
-                <button class="btn-return" onclick="processReturn('${data.id}')">🔄 ຄືນສິນຄ້າ ແລະ ເພີ່ມສະຕັອກ (Process Return)</button>
-            </div>
-        `;
+    if (error) {
+        console.error("Database Error:", error);
+        return alert("Error: " + error.message);
     }
+    
+    const container = document.getElementById('order-result');
+    
+    // Check if data exists and has at least one item
+    if (!data || data.length === 0) {
+        container.innerHTML = `<p style="text-align:center; padding:40px; color:#94a3b8;">❌ ບໍ່ພົບຂໍ້ມູນບິນນີ້ (Receipt not found)</p>`;
+        return;
+    }
+
+    // Since rpc returns an array, we take the first result
+    const order = data[0];
+    const date = new Date(order.created_at).toLocaleString('lo-LA');
+    
+    container.innerHTML = `
+        <div class="order-card">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                <div>
+                    <span class="badge badge-success">ຊຳລະແລ້ວ</span>
+                    <h2 style="margin:10px 0 0 0;">ບິນເລກທີ: #${order.id.substring(0,8).toUpperCase()}</h2>
+                    <small style="color:#64748b;">${date}</small>
+                </div>
+                <div style="text-align:right">
+                    <div style="font-size:24px; font-weight:800; color:var(--primary);">₭${order.total_amount.toLocaleString()}</div>
+                    <small>${order.payment_method}</small>
+                </div>
+            </div>
+
+            <div style="border-top: 1px solid #f1f5f9; padding-top:15px;">
+                <h4 style="margin-bottom:10px;">ລາຍການສິນຄ້າ:</h4>
+                ${order.items.map(item => `
+                    <div class="item-row">
+                        <span>${item.name} <b>x${item.qty}</b></span>
+                        <span>₭${(item.retail_price * item.qty).toLocaleString()}</span>
+                    </div>
+                `).join('')}
+            </div>
+
+            <button class="btn-return" onclick="processReturn('${order.id}')">🔄 ຄືນສິນຄ້າ ແລະ ເພີ່ມສະຕັອກ (Process Return)</button>
+        </div>
+    `;
+}
 
     async function processReturn(orderId) {
         if (!confirm("ທ່ານຕ້ອງການຢືນຢັນການຄືນສິນຄ້າ ແລະ ເພີ່ມສະຕັອກກັບຄືນບໍ່?")) return;
