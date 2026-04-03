@@ -83,66 +83,66 @@
     const k = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxvcGhua3drbWtna3JkZnhndG10Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3ODIxNTQsImV4cCI6MjA5MDM1ODE1NH0.ITu8VpDZy1pnJgafBYkSVOGTK0PHKkD7YN0bdH2UT_I";
     const _s = supabase.createClient(u, k);
 
-    async function handleLogin() {
-        const user = document.getElementById('user-select').value;
-        const pin = document.getElementById('pin-input').value;
-        const btn = document.getElementById('login-btn');
-        const msg = document.getElementById('msg');
+async function handleLogin() {
+    const user = document.getElementById('user-select').value;
+    const pin = document.getElementById('pin-input').value;
+    const btn = document.getElementById('login-btn');
+    const msg = document.getElementById('msg');
 
-        if (pin.length < 4) {
+    if (pin.length < 4) {
+        msg.style.color = "#ef4444";
+        msg.innerText = "⚠️ Please enter a 4-digit PIN";
+        return;
+    }
+
+    btn.disabled = true;
+    btn.innerText = "AUTHENTICATING...";
+    msg.innerText = "";
+
+    try {
+        // We search strictly by NAME and PIN
+        // Ensure the names in your Supabase table match "GM", "Somsak", "Keo", "Bouapha" exactly.
+        const { data, error } = await _s
+            .from('staff')
+            .select('name, role')
+            .eq('name', user) 
+            .eq('pin', pin.trim()) // .trim() removes accidental spaces
+            .maybeSingle();
+
+        if (error) throw error;
+
+        if (data) {
+            // Store session info
+            localStorage.setItem('lsm_user_name', data.name);
+            localStorage.setItem('lsm_role', data.role);
+
+            msg.style.color = "#10b981";
+            msg.innerText = "✅ Welcome, " + data.name + "!";
+
+            setTimeout(() => {
+                if (data.role === 'GM') {
+                    window.location.href = 'pos-inventory.html';
+                } else {
+                    window.location.href = 'pos-checkout.html';
+                }
+            }, 800);
+
+        } else {
+            // This triggers if NO row matches both NAME and PIN
             msg.style.color = "#ef4444";
-            msg.innerText = "⚠️ Please enter a 4-digit PIN";
-            return;
-        }
-
-        btn.disabled = true;
-        btn.innerText = "AUTHENTICATING...";
-        msg.innerText = "";
-
-        try {
-            // Mapping names to roles for the database check
-            // If it's GM, role is GM. Otherwise, it's a Cashier.
-            const targetRole = (user === "GM") ? "GM" : "CASHIER";
-
-            const { data, error } = await _s
-                .from('staff')
-                .select('name, role')
-                .eq('name', user)
-                .eq('pin', pin)
-                .maybeSingle();
-
-            if (error) throw error;
-
-            if (data) {
-                // Store session info
-                localStorage.setItem('lsm_user_name', data.name);
-                localStorage.setItem('lsm_role', data.role);
-
-                msg.style.color = "#10b981";
-                msg.innerText = "✅ Welcome, " + data.name + "!";
-
-                setTimeout(() => {
-                    if (data.role === 'GM') {
-                        window.location.href = 'pos-inventory.html'; // Full Access starts at Inventory
-                    } else {
-                        window.location.href = 'pos-checkout.html'; // Cashiers go straight to Checkout
-                    }
-                }, 800);
-
-            } else {
-                msg.style.color = "#ef4444";
-                msg.innerText = "❌ Invalid PIN for " + user;
-                btn.disabled = false;
-                btn.innerText = "ACCESS SYSTEM";
-            }
-
-        } catch (err) {
-            msg.style.color = "#ef4444";
-            msg.innerText = "System Error: Connection failed";
+            msg.innerText = "❌ Invalid PIN for " + user;
             btn.disabled = false;
             btn.innerText = "ACCESS SYSTEM";
         }
+
+    } catch (err) {
+        console.error("Login Error:", err);
+        msg.style.color = "#ef4444";
+        msg.innerText = "System Error: Check console for details";
+        btn.disabled = false;
+        btn.innerText = "ACCESS SYSTEM";
     }
+}
 
     // Allow Enter key to submit
     document.getElementById('pin-input').addEventListener('keypress', (e) => {
