@@ -39,14 +39,15 @@
 </div>
 
 <script>
-    // Using your exact working credentials
     const u = "https://lophnkwkmkgkrdfxgtmt.supabase.co"; 
     const k = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxvcGhua3drbWtna3JkZnhndG10Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3ODIxNTQsImV4cCI6MjA5MDM1ODE1NH0.ITu8VpDZy1pnJgafBYkSVOGTK0PHKkD7YN0bdH2UT_I";
+    
+    // Initialize exactly like the Garage system
     const _s = supabase.createClient(u, k);
 
     async function handleLogin() {
         const role = document.getElementById('role-select').value;
-        const pin = document.getElementById('pin-input').value;
+        const pin = document.getElementById('pin-input').value.trim(); // Trim input spaces
         const btn = document.getElementById('login-btn');
         const msg = document.getElementById('msg');
 
@@ -54,7 +55,7 @@
         btn.innerText = "VERIFYING...";
 
         try {
-            // MATCHING THE GARAGE LOGIC: Search by Role and PIN
+            // Logic match: Garage search style
             const { data, error } = await _s
                 .from('staff')
                 .select('name, role')
@@ -62,40 +63,33 @@
                 .eq('pin', pin)
                 .maybeSingle();
 
-            if (error) throw error;
+            if (error) {
+                alert("DATABASE ERROR: " + error.message);
+                throw error;
+            }
 
             if (data) {
                 localStorage.setItem('lsm_user_name', data.name);
                 localStorage.setItem('lsm_role', data.role);
-
                 msg.style.color = "#10b981";
-                msg.innerText = "✅ Access Granted!";
+                msg.innerText = "✅ Welcome, " + data.name;
 
                 setTimeout(() => {
-                    if (data.role === 'GM') {
-                        window.location.href = 'pos-inventory.html';
-                    } else {
-                        window.location.href = 'pos-checkout.html';
-                    }
+                    window.location.href = (data.role === 'GM') ? 'pos-inventory.html' : 'pos-checkout.html';
                 }, 800);
             } else {
+                // This alert tells us if the match failed
+                alert("LOGIN FAILED: No user found with Role [" + role + "] and PIN [" + pin + "]. Check your Supabase table data!");
                 msg.style.color = "#ef4444";
-                msg.innerText = "❌ Invalid PIN for " + role;
+                msg.innerText = "❌ Invalid PIN";
                 btn.disabled = false;
                 btn.innerText = "SECURE LOGIN";
             }
         } catch (err) {
-            console.error(err);
-            msg.style.color = "#ef4444";
-            msg.innerText = "System Error: " + err.message;
+            alert("SYSTEM ERROR: " + err.message);
             btn.disabled = false;
         }
     }
-
-    document.getElementById('pin-input').addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') handleLogin();
-    });
 </script>
-
 </body>
 </html>
