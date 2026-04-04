@@ -266,12 +266,22 @@
     function remItem(idx) { cart.splice(idx, 1); drawCart(); syncIfQR(); }
     function updateTotals(total) { document.getElementById('grand-total').innerText = formatLAK(total); }
     
-    function syncIfQR() {
-        if (payMethod === 'QR Code') {
-            const sum = cart.reduce((s, i) => s + (i.retail_price * i.qty), 0);
-            sendQRToCustomer(sum);
-        }
+  function syncIfQR() {
+    const sum = cart.reduce((s, i) => s + (i.retail_price * i.qty), 0);
+    
+    if (payMethod === 'QR Code') {
+        // ສົ່ງຂໍ້ມູນພ້ອມ QR String
+        sendQRToCustomer(sum);
+    } else {
+        // ຖ້າເປັນ ເງິນສົດ ຫຼື ວິທີອື່ນ: ສົ່ງຂໍ້ມູນໄປແຕ່ໃຫ້ qr_string ເປັນຄ່າວ່າງ ("")
+        _s.from('customer_display').insert([{ 
+            amount: sum, 
+            qr_string: "", // ລຶບ QR ອອກຈາກໜ້າຈໍລູກຄ້າ
+            status: 'PENDING',
+            items: cart 
+        }]);
     }
+}
 
     function setPay(m, b) { 
         payMethod = m; 
