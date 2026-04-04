@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ePOS | Daily Register Summary</title>
+    <title>mPOS | Daily Register Summary</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link href="https://fonts.googleapis.com/css2?family=Phetsarath&family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
     
@@ -44,7 +44,15 @@
         @media print {
             body * { visibility: hidden; }
             #thermal-receipt, #thermal-receipt * { visibility: visible; }
-            #thermal-receipt { position: absolute; left: 0; top: 0; width: 80mm; padding: 5px; color: black !important; }
+            #thermal-receipt { 
+                position: absolute; 
+                left: 0; 
+                top: 0; 
+                width: 80mm; 
+                padding: 10px; 
+                color: black !important;
+                background: white;
+            }
             .no-print { display: none; }
         }
     </style>
@@ -81,30 +89,49 @@
                     <th>ພິມ</th>
                 </tr>
             </thead>
-            <tbody id="summary-table-body">
-                </tbody>
+            <tbody id="summary-table-body"></tbody>
         </table>
     </div>
 </main>
 
-<div id="thermal-receipt" style="display: none; font-family: 'Courier New', Courier, monospace;">
+<div id="thermal-receipt" style="display: none;">
     <div style="text-align: center; border-bottom: 1px dashed black; padding-bottom: 10px;">
-        <h2 style="margin: 5px 0;">DAILY SUMMARY</h2>
-        <p id="rt-date" style="margin: 0;"></p>
+        <h2 style="margin: 5px 0; font-family: 'Phetsarath OT', var(--lao);">ໃບສະຫຼຸບຍອດປະຈຳວັນ</h2>
+        <p id="rt-date" style="margin: 0; font-size: 14px;"></p>
     </div>
-    <div style="padding: 10px 0; font-size: 14px;">
-        <p>Total Bills: <span id="rt-count" style="float: right;"></span></p>
-        <p>System Total: <span id="rt-sys" style="float: right;"></span></p>
-        <div style="border-top: 1px solid #eee; margin: 10px 0;"></div>
-        <p><b>Actual Cash:</b> <span id="rt-cash" style="float: right;"></span></p>
-        <p><b>Actual Trans:</b> <span id="rt-trans" style="float: right;"></span></p>
-        <p style="border-top: 1px dashed black; padding-top: 10px;">
-            <b>VARIANCE:</b> <span id="rt-diff" style="float: right;"></span>
-        </p>
+    
+    <div style="padding: 10px 0; font-size: 14px; line-height: 1.6; font-family: 'Phetsarath OT', var(--lao);">
+        <div style="display: flex; justify-content: space-between;">
+            <span>ຈຳນວນບິນທັງໝົດ:</span>
+            <span id="rt-count" style="font-weight: bold;"></span>
+        </div>
+        <div style="display: flex; justify-content: space-between;">
+            <span>ຍອດລວມໃນລະບົບ:</span>
+            <span id="rt-sys" style="font-weight: bold;"></span>
+        </div>
+        
+        <div style="border-top: 1px solid #eee; margin: 8px 0;"></div>
+        
+        <div style="display: flex; justify-content: space-between;">
+            <span>ເງິນສົດຕົວຈິງ:</span>
+            <span id="rt-cash" style="font-weight: bold;"></span>
+        </div>
+        <div style="display: flex; justify-content: space-between;">
+            <span>ເງິນໂອນຕົວຈິງ:</span>
+            <span id="rt-trans" style="font-weight: bold;"></span>
+        </div>
+        
+        <div style="border-top: 1px dashed black; margin: 10px 0; padding-top: 5px;"></div>
+        
+        <div style="display: flex; justify-content: space-between; font-size: 16px;">
+            <span style="font-weight: bold;">ສ່ວນຕ່າງ:</span>
+            <span id="rt-diff" style="font-weight: bold;"></span>
+        </div>
     </div>
-    <div style="text-align: center; margin-top: 20px; font-size: 12px; border-top: 1px solid black; padding-top: 5px;">
-        User: <span id="rt-user"></span><br>
-        Powered by Somphone 02055348882
+    
+    <div style="text-align: center; margin-top: 20px; font-size: 12px; border-top: 1px solid black; padding-top: 10px; font-family: 'Phetsarath OT', var(--lao);">
+        ຜູ້ປິດຍອດ: <span id="rt-user"></span><br>
+        <span style="font-size: 10px; color: #666;">Powered by Somphone 02055348882</span>
     </div>
 </div>
 
@@ -136,7 +163,7 @@
                             ${r.variance > 0 ? '+' : ''}${formatLAK(r.variance)}
                         </span>
                     </td>
-                    <td>${r.closed_by}</td>
+                    <td>${r.closed_by || 'N/A'}</td>
                     <td>
                         <button class="btn-print" onclick='printThermal(${JSON.stringify(r)})'>🖨️ ພິມ</button>
                     </td>
@@ -146,18 +173,22 @@
     }
 
     function printThermal(r) {
-        // Fill receipt values
-        document.getElementById('rt-date').innerText = r.report_date;
-        document.getElementById('rt-count').innerText = r.total_orders_count;
+        // Mapping data to Lao Template
+        document.getElementById('rt-date').innerText = "ວັນທີ: " + r.report_date;
+        document.getElementById('rt-count').innerText = r.total_orders_count + " ບິນ";
         document.getElementById('rt-sys').innerText = formatLAK(r.system_total_amount);
         document.getElementById('rt-cash').innerText = formatLAK(r.actual_cash_amount);
         document.getElementById('rt-trans').innerText = formatLAK(r.actual_transfer_amount);
         document.getElementById('rt-diff').innerText = formatLAK(r.variance);
-        document.getElementById('rt-user').innerText = r.closed_by;
+        document.getElementById('rt-user').innerText = r.closed_by || 'Admin';
 
         const receipt = document.getElementById('thermal-receipt');
         receipt.style.display = 'block';
+        
+        // Trigger Print
         window.print();
+        
+        // Hide again after printing
         receipt.style.display = 'none';
     }
 
