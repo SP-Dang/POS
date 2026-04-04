@@ -70,27 +70,53 @@
           })
           .subscribe();
 
-        function updateUI(data) {
-            document.getElementById('payment-content').style.display = 'block';
-            document.getElementById('thank-you-msg').style.display = 'none';
-            
-            document.getElementById('amount').innerText = "₭" + Number(data.amount).toLocaleString();
-            document.getElementById('total-display').innerText = "₭" + Number(data.amount).toLocaleString();
-            
-            // ສະແດງລາຍການສິນຄ້າ (Items)
-            const listContainer = document.getElementById('item-list');
-            listContainer.innerHTML = data.items ? data.items.map(i => `
-                <div class="item-row">
-                    <span>${i.name} x ${i.qty}</span>
-                    <span style="font-weight:700;">${(i.retail_price * i.qty).toLocaleString()}</span>
-                </div>
-            `).join('') : '<div class="waiting-box">ກຳລັງປະມວນຜົນ...</div>';
+function updateUI(data) {
+    const paymentContent = document.getElementById('payment-content');
+    const thankYouMsg = document.getElementById('thank-you-msg');
+    const qrContainer = document.getElementById("qrcode-canvas");
+    const amountDisplay = document.getElementById('amount');
+    const totalDisplay = document.getElementById('total-display');
+    const listContainer = document.getElementById('item-list');
 
-            // ສ້າງ QR (ຂະໜາດນ້ອຍລົງເປັນ 180)
-            const qrContainer = document.getElementById("qrcode-canvas");
-            qrContainer.innerHTML = ""; 
-            new QRCode(qrContainer, { text: data.qr_string, width: 180, height: 180 });
-        }
+    paymentContent.style.display = 'block';
+    thankYouMsg.style.display = 'none';
+    
+    // ອັບເດດລາຄາ
+    const formattedAmount = "₭" + Number(data.amount).toLocaleString();
+    amountDisplay.innerText = formattedAmount;
+    totalDisplay.innerText = formattedAmount;
+    
+    // ສະແດງລາຍການສິນຄ້າ
+    listContainer.innerHTML = data.items ? data.items.map(i => `
+        <div class="item-row">
+            <span>${i.name} x ${i.qty}</span>
+            <span style="font-weight:700;">${(i.retail_price * i.qty).toLocaleString()}</span>
+        </div>
+    `).join('') : '<div class="waiting-box">ກຳລັງປະມວນຜົນ...</div>';
+
+    // --- ສ່ວນທີ່ແກ້ໄຂໃໝ່: ກວດເຊັກ QR String ---
+    qrContainer.innerHTML = ""; 
+    
+    if (data.qr_string && data.qr_string.trim() !== "") {
+        // ຖ້າມີ QR String ໃຫ້ສ້າງ QR Code
+        new QRCode(qrContainer, { 
+            text: data.qr_string, 
+            width: 180, 
+            height: 180,
+            colorDark : "#0f172a",
+            colorLight : "#ffffff"
+        });
+        document.querySelector('.payment-side p').innerText = "ກະລຸນາສະແກນຜ່ານແອັບທະນາຄານ";
+    } else {
+        // ຖ້າບໍ່ມີ QR String (ກໍລະນີຈ່າຍເງິນສົດ)
+        qrContainer.innerHTML = `
+            <div style="color:#0f172a; display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%;">
+                <span style="font-size: 40px;">💵</span>
+                <span style="font-weight: bold; font-size: 16px; margin-top:10px;">ຈ່າຍເປັນເງິນສົດ</span>
+            </div>`;
+        document.querySelector('.payment-side p').innerText = "ກະລຸນາຊຳລະເງິນສົດທີ່ເຄົາເຕີ";
+    }
+}
 
         function showThankYou() {
             document.getElementById('payment-content').style.display = 'none';
