@@ -1,52 +1,139 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="lo">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LSM Retail | Login</title>
+    <title>LSM Retail | ເຂົ້າສູ່ລະບົບ</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Phetsarath&family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
     <style>
-        :root { --primary: #10b981; --bg: #f8fafc; }
-        body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
-        .login-card { background: white; padding: 40px; border-radius: 24px; box-shadow: 0 20px 50px rgba(0,0,0,0.05); width: 100%; max-width: 360px; text-align: center; border: 1px solid #e2e8f0; }
-        .logo { font-weight: 800; font-size: 26px; color: var(--primary); margin-bottom: 20px; }
-        .input-group { text-align: left; margin-bottom: 20px; }
-        label { display: block; font-size: 12px; font-weight: 700; color: #475569; margin-bottom: 8px; text-transform: uppercase; }
-        select, input { width: 100%; padding: 14px; border: 2px solid #f1f5f9; border-radius: 12px; font-size: 16px; font-weight: 600; outline: none; box-sizing: border-box; }
-        .btn-login { width: 100%; padding: 16px; background: var(--primary); color: white; border: none; border-radius: 14px; font-weight: 800; cursor: pointer; font-size: 16px; margin-top: 10px; }
-        #msg { margin-top: 20px; font-size: 14px; font-weight: 600; }
+        :root { 
+            --primary: #10b981; 
+            --bg: #f1f5f9; 
+            --lao-font: 'Phetsarath', sans-serif;
+            --eng-font: 'Plus Jakarta Sans', sans-serif;
+        }
+        
+        body { 
+            font-family: var(--eng-font), var(--lao-font); 
+            background: var(--bg); 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            height: 100vh; 
+            margin: 0; 
+        }
+
+        .login-card { 
+            background: white; 
+            padding: 45px 35px; 
+            border-radius: 28px; 
+            box-shadow: 0 25px 50px -12px rgba(0,0,0,0.08); 
+            width: 100%; 
+            max-width: 380px; 
+            text-align: center; 
+            border: 1px solid #e2e8f0; 
+        }
+
+        .logo { 
+            font-weight: 800; 
+            font-size: 28px; 
+            color: var(--primary); 
+            margin-bottom: 8px; 
+            letter-spacing: -0.5px;
+        }
+
+        .sub-title {
+            font-size: 14px;
+            color: #64748b;
+            margin-bottom: 30px;
+            font-family: var(--lao-font);
+        }
+
+        .input-group { text-align: left; margin-bottom: 22px; }
+        
+        label { 
+            display: block; 
+            font-size: 13px; 
+            font-weight: 700; 
+            color: #475569; 
+            margin-bottom: 10px; 
+            font-family: var(--lao-font);
+        }
+
+        select, input { 
+            width: 100%; 
+            padding: 14px 16px; 
+            border: 2px solid #f1f5f9; 
+            border-radius: 14px; 
+            font-size: 16px; 
+            font-weight: 600; 
+            outline: none; 
+            box-sizing: border-box; 
+            transition: 0.2s;
+            font-family: var(--lao-font);
+        }
+
+        select:focus, input:focus {
+            border-color: var(--primary);
+            background: #f0fffb;
+        }
+
+        /* ປັບແຕ່ງຊ່ອງ PIN ໃຫ້ເປັນຕົວເລກໃຫຍ່ໆ */
+        #pin-input {
+            text-align: center;
+            letter-spacing: 12px;
+            font-size: 24px;
+        }
+
+        .btn-login { 
+            width: 100%; 
+            padding: 18px; 
+            background: var(--primary); 
+            color: white; 
+            border: none; 
+            border-radius: 16px; 
+            font-weight: 800; 
+            cursor: pointer; 
+            font-size: 16px; 
+            margin-top: 15px; 
+            font-family: var(--lao-font);
+            transition: transform 0.1s;
+        }
+
+        .btn-login:active { transform: scale(0.98); }
+        .btn-login:disabled { background: #94a3b8; cursor: not-allowed; }
+
+        #msg { margin-top: 20px; font-size: 14px; font-weight: 600; font-family: var(--lao-font); }
     </style>
 </head>
 <body>
 
 <div class="login-card">
-    <div class="logo">ລະບົບຂາຍເຄື່ອງ mPOS</div>
+    <div class="logo">⚡ mPOS</div>
+    <div class="sub-title">ລະບົບຈັດການການຂາຍ LSM Retail</div>
     
     <div class="input-group">
-        <label>Select Your Name</label>
+        <label>ເລືອກຊື່ພະນັກງານ</label>
         <select id="name-select">
-            <option value="">Loading staff...</option>
+            <option value="">ກຳລັງໂຫຼດຂໍ້ມູນ...</option>
         </select>
     </div>
 
     <div class="input-group">
-        <label>Enter PIN</label>
-        <input type="password" id="pin-input" placeholder="••••" maxlength="4">
+        <label>ລະຫັດຜ່ານ (PIN)</label>
+        <input type="password" id="pin-input" placeholder="••••" maxlength="4" inputmode="numeric">
     </div>
 
-    <button class="btn-login" id="login-btn" onclick="handleLogin()">ENTER WORKSTATION</button>
+    <button class="btn-login" id="login-btn" onclick="handleLogin()">ເຂົ້າສູ່ລະບົບ</button>
     <div id="msg"></div>
 </div>
 
 <script>
-    // UPDATED FOR YOUR NEW PROJECT
     const SB_URL = "https://zddelixvencundnkccpq.supabase.co";
     const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpkZGVsaXh2ZW5jdW5kbmtjY3BxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUxMjQ1MzMsImV4cCI6MjA5MDcwMDUzM30.-RPvOYMLzftubrpJ4KSVrqL2eNaopjty30_TrnkGpBo";
-    
     const _supabase = supabase.createClient(SB_URL, SB_KEY);
 
-    // This function now points to the new project and the new table
     async function loadStaff() {
         try {
             const { data, error } = await _supabase
@@ -57,7 +144,7 @@
             if (error) throw error;
 
             const select = document.getElementById('name-select');
-            select.innerHTML = '<option value="">-- Choose Name --</option>';
+            select.innerHTML = '<option value="">-- ເລືອກຊື່ຂອງທ່ານ --</option>';
             
             data.forEach(person => {
                 const opt = document.createElement('option');
@@ -66,8 +153,7 @@
                 select.appendChild(opt);
             });
         } catch (err) {
-            console.error("Connection Error:", err);
-            document.getElementById('msg').innerText = "Database Connection Error.";
+            document.getElementById('msg').innerHTML = "❌ ບໍ່ສາມາດເຊື່ອມຕໍ່ຖານຂໍ້ມູນໄດ້";
         }
     }
 
@@ -77,10 +163,14 @@
         const btn = document.getElementById('login-btn');
         const msg = document.getElementById('msg');
 
-        if (!name || !pin) return;
+        if (!name || !pin) {
+            msg.style.color = "#f59e0b";
+            msg.innerText = "⚠️ ກະລຸນາເລືອກຊື່ ແລະ ປ້ອນ PIN";
+            return;
+        }
 
         btn.disabled = true;
-        btn.innerText = "VERIFYING...";
+        btn.innerText = "ກຳລັງກວດສອບ...";
 
         try {
             const { data, error } = await _supabase
@@ -98,12 +188,14 @@
                 window.location.href = (data.role === 'GM') ? 'pos-inventory.html' : 'pos-checkout.html';
             } else {
                 msg.style.color = "#ef4444";
-                msg.innerText = "❌ Incorrect PIN";
+                msg.innerText = "❌ ລະຫັດ PIN ບໍ່ຖືກຕ້ອງ";
                 btn.disabled = false;
-                btn.innerText = "ENTER WORKSTATION";
+                btn.innerText = "ເຂົ້າສູ່ລະບົບ";
             }
         } catch (err) {
             btn.disabled = false;
+            btn.innerText = "ເຂົ້າສູ່ລະບົບ";
+            msg.innerText = "⚠️ ເກີດຂໍ້ຜິດພາດທາງເຕັກນິກ";
         }
     }
 
