@@ -21,18 +21,15 @@
         * { box-sizing: border-box; font-family: 'Plus Jakarta Sans', var(--lao); }
         body { margin: 0; display: flex; background: var(--bg); color: var(--text); height: 100vh; overflow: hidden; }
 
-        /* Sidebar Nav */
         .sidebar { width: 260px; background: var(--sidebar); color: white; padding: 30px 20px; display: flex; flex-direction: column; }
         .logo { font-weight: 800; font-size: 22px; color: var(--primary); margin-bottom: 40px; display: flex; align-items: center; gap: 10px; }
         .nav-item { padding: 14px 18px; border-radius: 12px; color: #94a3b8; text-decoration: none; margin-bottom: 8px; transition: 0.3s; font-weight: 600; display: flex; align-items: center; gap: 12px; font-size: 14px; }
         .nav-item:hover { background: rgba(255,255,255,0.05); color: white; }
         .nav-item.active { background: var(--primary); color: white; box-shadow: 0 10px 15px -3px rgba(16, 185, 129, 0.3); }
 
-        /* Main Area */
         .main { flex: 1; overflow-y: auto; padding: 40px; }
         .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
         
-        /* Inventory Grid & Cards */
         .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 25px; }
         .card { 
             background: var(--card); border-radius: 20px; padding: 25px; border: 1px solid rgba(0,0,0,0.04);
@@ -40,13 +37,7 @@
         }
         .card:hover { transform: translateY(-8px); box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); }
         
-        .card h3 { 
-            margin: 15px 0 5px 0; 
-            font-family: var(--lao); 
-            line-height: 1.6; 
-            font-weight: 700;
-        }
-
+        .card h3 { margin: 15px 0 5px 0; font-family: var(--lao); line-height: 1.6; font-weight: 700; }
         .badge { font-size: 10px; font-weight: 800; padding: 4px 12px; border-radius: 20px; text-transform: uppercase; }
         .badge-ok { background: #ecfdf5; color: #065f46; }
         .badge-low { background: #fef2f2; color: #991b1b; }
@@ -56,17 +47,16 @@
         .stock-fill { height: 100%; background: var(--primary); transition: 0.5s; }
         .stock-low .stock-fill { background: var(--danger); }
 
-        .btn-main { background: var(--sidebar); color: white; padding: 14px 28px; border-radius: 12px; border: none; font-weight: 700; cursor: pointer; transition: 0.3s; font-family: var(--lao); }
+        .btn-main { background: var(--sidebar); color: white; padding: 14px 24px; border-radius: 12px; border: none; font-weight: 700; cursor: pointer; transition: 0.3s; font-family: var(--lao); }
         .btn-main:hover { background: #1e293b; transform: scale(1.02); }
+        .btn-outline { background: transparent; border: 2px solid var(--sidebar); color: var(--sidebar); padding: 12px 24px; border-radius: 12px; font-weight: 700; cursor: pointer; font-family: var(--lao); transition: 0.3s; }
+        .btn-outline:hover { background: var(--sidebar); color: white; }
         
         .debug-bar { position: fixed; bottom: 20px; right: 20px; background: #1e293b; color: #10b981; padding: 10px 20px; border-radius: 10px; font-size: 12px; font-family: monospace; z-index: 100; }
         
-        /* Action Buttons on Card */
         .card-actions { display: flex; gap: 10px; margin-top: 15px; border-top: 1px solid #f1f5f9; padding-top: 15px; }
         .btn-edit { flex: 1; background: #f0f4ff; color: #4f46e5; border: none; padding: 10px; border-radius: 10px; font-weight: 700; cursor: pointer; font-family: var(--lao); transition: 0.2s; }
-        .btn-edit:hover { background: #e0e7ff; }
-        .btn-delete { background: #fff1f1; color: #ef4444; border: none; padding: 10px 15px; border-radius: 10px; cursor: pointer; transition: 0.2s; }
-        .btn-delete:hover { background: #ffe4e4; }
+        .btn-delete { background: #fff1f1; color: #ef4444; border: none; padding: 10px 15px; border-radius: 10px; cursor: pointer; }
 
         /* Modal Styles */
         #edit-modal { 
@@ -75,14 +65,13 @@
         }
         .modal-content { 
             background: white; padding: 35px; border-radius: 24px; width: 420px; 
-            box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); position: relative;
+            box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);
         }
-        .modal-content label { display: block; font-size: 12px; font-weight: 700; color: var(--text-light); margin-bottom: 5px; margin-top: 15px; }
+        .modal-content label { display: block; font-size: 12px; font-weight: 700; color: var(--text-light); margin-bottom: 5px; margin-top: 12px; }
         .modal-content input { 
-            width: 100%; padding: 14px; border: 1px solid #e2e8f0; border-radius: 12px; 
-            font-family: var(--lao); font-size: 15px; outline: none; transition: 0.2s;
+            width: 100%; padding: 12px; border: 1px solid #e2e8f0; border-radius: 10px; 
+            font-family: var(--lao); outline: none;
         }
-        .modal-content input:focus { border-color: var(--primary); box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.1); }
 
         .status-pulse { background: var(--card); padding: 15px 25px; border-radius: 16px; display: flex; align-items: center; gap: 15px; border: 1px solid rgba(0,0,0,0.05); }
         .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--primary); }
@@ -103,11 +92,8 @@
     <a href="#" class="nav-item" style="margin-top:auto">⚙️ Settings</a>
     
     <div class="user-box" style="padding: 15px; border-top: 1px solid rgba(255,255,255,0.1); margin-top: 10px;">
-        <div style="font-size: 0.7rem; color: #94a3b8; margin-bottom: 5px; opacity: 0.7;">LOGGED IN AS:</div>
         <div id="display-user-name" style="font-weight: 600; color: white; margin-bottom: 15px; font-size: 0.9rem;">Loading...</div>
-        <button onclick="handleLogout()" style="background: rgba(239, 68, 68, 0.2); color: #f87171; border: none; width: 100%; text-align: left; padding: 10px; cursor: pointer; border-radius: 8px; font-weight: 600;">
-            🚪 Log Out
-        </button>
+        <button onclick="handleLogout()" style="background: rgba(239, 68, 68, 0.2); color: #f87171; border: none; width: 100%; text-align: left; padding: 10px; cursor: pointer; border-radius: 8px; font-weight: 600;">🚪 Log Out</button>
     </div>
 </nav>
 
@@ -123,12 +109,15 @@
         </div>
     </div>
 
-    <div style="background: white; padding: 30px; border-radius: 20px; margin-bottom: 30px; display: flex; align-items: center; justify-content: space-between; border: 1px solid rgba(0,0,0,0.05);">
+    <div style="background: white; padding: 25px; border-radius: 20px; margin-bottom: 30px; display: flex; align-items: center; justify-content: space-between; border: 1px solid rgba(0,0,0,0.05);">
         <div>
-            <h3 style="margin:0; font-family: var(--lao);">ນຳເຂົ້າຂໍ້ມູນຈຳນວນຫຼາຍ</h3>
-            <p style="color: var(--text-light); font-size: 14px; margin: 5px 0 0; font-family: var(--lao);">ອັບໂຫຼດໄຟລ໌ CSV ເພື່ອຊິງຄ໌ຂໍ້ມູນທັນທີ</p>
+            <h3 style="margin:0; font-family: var(--lao);">ຈັດການລາຍການສິນຄ້າ</h3>
+            <p style="color: var(--text-light); font-size: 14px; margin: 5px 0 0; font-family: var(--lao);">ເພີ່ມສິນຄ້າໃໝ່ ຫຼື ອັບໂຫຼດຜ່ານ CSV</p>
         </div>
-        <button class="btn-main" onclick="document.getElementById('file-input').click()">ອັບໂຫຼດ CSV</button>
+        <div style="display: flex; gap: 12px;">
+            <button class="btn-outline" onclick="openAddModal()">+ ເພີ່ມລາຍການໃໝ່</button>
+            <button class="btn-main" onclick="document.getElementById('file-input').click()">ອັບໂຫຼດ CSV</button>
+        </div>
         <input type="file" id="file-input" hidden accept=".csv">
     </div>
 
@@ -137,8 +126,9 @@
 
 <div id="edit-modal">
     <div class="modal-content">
-        <h2 style="margin:0; font-family: var(--lao);">ແກ້ໄຂຂໍ້ມູນສິນຄ້າ</h2>
-        <input type="hidden" id="edit-barcode">
+        <h2 id="modal-title" style="margin:0; font-family: var(--lao);">ເພີ່ມສິນຄ້າໃໝ່</h2>
+        <input type="hidden" id="edit-mode" value="ADD"> <label>ບາໂຄດ (Barcode)</label>
+        <input type="text" id="edit-barcode" placeholder="ຍິງບາໂຄດ ຫຼື ປ້ອນລະຫັດ...">
         
         <label>ຊື່ສິນຄ້າ</label>
         <input type="text" id="edit-name" placeholder="ປ້ອນຊື່ສິນຄ້າ...">
@@ -147,10 +137,13 @@
         <input type="number" id="edit-price" placeholder="0">
         
         <label>ຈຳນວນໃນສາງ</label>
-        <input type="number" id="edit-qty" placeholder="0">
+        <input type="number" id="edit-qty" value="0">
+
+        <label>ຂັ້ນຕ່ຳທີ່ຕ້ອງເຕືອນ (Min Stock)</label>
+        <input type="number" id="edit-min" value="5">
 
         <div style="display:flex; gap:12px; margin-top:25px;">
-            <button class="btn-main" style="flex:1" onclick="saveEdit()">ບັນທຶກການປ່ຽນແປງ</button>
+            <button class="btn-main" style="flex:2" onclick="saveProduct()">ບັນທຶກ</button>
             <button class="btn-main" style="flex:1; background:#e2e8f0; color: #475569" onclick="closeModal()">ຍົກເລີກ</button>
         </div>
     </div>
@@ -166,50 +159,22 @@
     function initializeUser() {
         const name = localStorage.getItem('lsm_user_name');
         const role = localStorage.getItem('lsm_role');
-        const displayDiv = document.getElementById('display-user-name');
         if (!name) { window.location.href = 'login.html'; return; }
-        if (role !== 'GM') { alert("⚠️ Restricted Access: GMs Only."); window.location.href = 'pos-checkout.html'; return; }
-        if (displayDiv) displayDiv.innerText = name + " (" + role + ")";
+        if (role !== 'GM') { window.location.href = 'pos-checkout.html'; return; }
+        document.getElementById('display-user-name').innerText = name + " (" + role + ")";
     }
 
     function handleLogout() {
         if (confirm("ຕ້ອງການອອກຈາກລະບົບ?")) {
-            localStorage.removeItem('lsm_user_name');
-            localStorage.removeItem('lsm_role');
-            window.location.href = 'login.html';
+            localStorage.clear(); window.location.href = 'login.html';
         }
     }
 
     function log(msg) { document.getElementById('debug').innerText = "Log: " + msg; }
     const formatLAK = (val) => new Intl.NumberFormat('lo-LA', { style: 'currency', currency: 'LAK', maximumFractionDigits: 0 }).format(val);
 
-    // --- CSV UPLOAD ---
-    document.getElementById('file-input').onchange = (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-        const reader = new FileReader();
-        reader.onload = async (event) => {
-            const results = Papa.parse(event.target.result);
-            if (results.data.length > 0) {
-                const formatted = results.data.map(row => ({
-                    barcode: String(row.Barcode || '').trim(),
-                    name: row.Name,
-                    category: row.Category || 'General',
-                    retail_price: parseFloat(row.Price) || 0,
-                    stock_qty: parseInt(row.Qty) || 0,
-                    min_stock: parseInt(row.MinQty) || 5
-                })).filter(i => i.name);
+    // --- PRODUCT MANAGEMENT ---
 
-                log("Syncing " + formatted.length + " items...");
-                const { error } = await _s.from('pos_products').upsert(formatted, { onConflict: 'barcode' });
-                if(error) log("Error: " + error.message);
-                else { log("Sync Complete!"); loadInventory(); }
-            }
-        };
-        reader.readAsText(file);
-    };
-
-    // --- LOAD DATA ---
     async function loadInventory() {
         const { data, error } = await _s.from('pos_products').select('*').order('name');
         if (error) return log(error.message);
@@ -220,8 +185,6 @@
         grid.innerHTML = data.map(i => {
             const isLow = i.stock_qty <= i.min_stock;
             if(isLow) lowItems++;
-            const localDate = new Date(i.created_at).toLocaleString('lo-LA', { timeZone: 'Asia/Bangkok' });
-
             return `
                 <div class="card ${isLow ? 'stock-low' : ''}">
                     <div style="display:flex; justify-content:space-between; align-items:center;">
@@ -230,28 +193,80 @@
                     </div>
                     <h3>${i.name}</h3>
                     <div class="price">${formatLAK(i.retail_price)}</div>
-                    
-                    <div class="stock-bar">
-                        <div class="stock-fill" style="width: ${Math.min((i.stock_qty/20)*100, 100)}%"></div>
-                    </div>
-                    <div style="display:flex; justify-content:space-between; font-size:12px; color:var(--text-light); font-family: var(--lao);">
+                    <div class="stock-bar"><div class="stock-fill" style="width: ${Math.min((i.stock_qty/20)*100, 100)}%"></div></div>
+                    <div style="display:flex; justify-content:space-between; font-size:12px; color:var(--text-light);">
                         <span>ຄົງເຫຼືອ: <b>${i.stock_qty}</b></span>
                         <span>ຂັ້ນຕ່ຳ: ${i.min_stock}</span>
                     </div>
-                    
                     <div class="card-actions">
-                        <button class="btn-edit" onclick="openEdit('${i.barcode}', '${i.name.replace(/'/g, "\\'")}', ${i.retail_price}, ${i.stock_qty})">📝 ແກ້ໄຂ</button>
+                        <button class="btn-edit" onclick="openEditModal('${i.barcode}', '${i.name.replace(/'/g, "\\'")}', ${i.retail_price}, ${i.stock_qty}, ${i.min_stock})">📝 ແກ້ໄຂ</button>
                         <button class="btn-delete" onclick="deleteItem('${i.barcode}')">🗑️</button>
-                    </div>
-
-                    <div style="margin-top:15px; font-size:10px; color:#cbd5e1; border-top:1px solid #f1f5f9; padding-top:10px;">
-                        ເພີ່ມເມື່ອ: ${localDate}
                     </div>
                 </div>
             `;
         }).join('');
 
         updatePulse(lowItems);
+    }
+
+    // Modal Control
+    function openAddModal() {
+        document.getElementById('modal-title').innerText = "ເພີ່ມສິນຄ້າໃໝ່";
+        document.getElementById('edit-mode').value = "ADD";
+        document.getElementById('edit-barcode').value = "";
+        document.getElementById('edit-barcode').disabled = false;
+        document.getElementById('edit-name').value = "";
+        document.getElementById('edit-price').value = "";
+        document.getElementById('edit-qty').value = "0";
+        document.getElementById('edit-min').value = "5";
+        document.getElementById('edit-modal').style.display = 'flex';
+    }
+
+    function openEditModal(barcode, name, price, qty, min) {
+        document.getElementById('modal-title').innerText = "ແກ້ໄຂຂໍ້ມູນສິນຄ້າ";
+        document.getElementById('edit-mode').value = "EDIT";
+        document.getElementById('edit-barcode').value = barcode;
+        document.getElementById('edit-barcode').disabled = true; // ຫ້າມປ່ຽນ Barcode ເວລາ Edit
+        document.getElementById('edit-name').value = name;
+        document.getElementById('edit-price').value = price;
+        document.getElementById('edit-qty').value = qty;
+        document.getElementById('edit-min').value = min;
+        document.getElementById('edit-modal').style.display = 'flex';
+    }
+
+    function closeModal() { document.getElementById('edit-modal').style.display = 'none'; }
+
+    async function saveProduct() {
+        const mode = document.getElementById('edit-mode').value;
+        const payload = {
+            barcode: document.getElementById('edit-barcode').value,
+            name: document.getElementById('edit-name').value,
+            retail_price: parseFloat(document.getElementById('edit-price').value),
+            stock_qty: parseInt(document.getElementById('edit-qty').value),
+            min_stock: parseInt(document.getElementById('edit-min').value)
+        };
+
+        if(!payload.barcode || !payload.name) return alert("ກະລຸນາປ້ອນ ບາໂຄດ ແລະ ຊື່ສິນຄ້າ");
+
+        log("ກຳລັງບັນທຶກ...");
+        let error;
+        if(mode === "ADD") {
+            const res = await _s.from('pos_products').insert([payload]);
+            error = res.error;
+        } else {
+            const res = await _s.from('pos_products').update(payload).eq('barcode', payload.barcode);
+            error = res.error;
+        }
+
+        if (error) alert("ຜິດພາດ: " + error.message);
+        else { closeModal(); loadInventory(); log("ສຳເລັດ!"); }
+    }
+
+    async function deleteItem(barcode) {
+        if (confirm("ຕ້ອງການລຶບສິນຄ້ານີ້?")) {
+            const { error } = await _s.from('pos_products').delete().eq('barcode', barcode);
+            if (!error) loadInventory();
+        }
     }
 
     function updatePulse(lowItems) {
@@ -266,59 +281,28 @@
         }
     }
 
-    // --- EDIT FUNCTIONS ---
-    function openEdit(barcode, name, price, qty) {
-        document.getElementById('edit-barcode').value = barcode;
-        document.getElementById('edit-name').value = name;
-        document.getElementById('edit-price').value = price;
-        document.getElementById('edit-qty').value = qty;
-        document.getElementById('edit-modal').style.display = 'flex';
-    }
+    // CSV Handling
+    document.getElementById('file-input').onchange = (e) => {
+        const file = e.target.files[0];
+        const reader = new FileReader();
+        reader.onload = async (event) => {
+            const results = Papa.parse(event.target.result);
+            const formatted = results.data.map(row => ({
+                barcode: String(row.Barcode || '').trim(),
+                name: row.Name,
+                retail_price: parseFloat(row.Price) || 0,
+                stock_qty: parseInt(row.Qty) || 0,
+                min_stock: parseInt(row.MinQty) || 5
+            })).filter(i => i.name && i.barcode);
 
-    function closeModal() {
-        document.getElementById('edit-modal').style.display = 'none';
-    }
+            const { error } = await _s.from('pos_products').upsert(formatted, { onConflict: 'barcode' });
+            if(error) log("Error: " + error.message);
+            else { log("CSV Sync Complete!"); loadInventory(); }
+        };
+        reader.readAsText(file);
+    };
 
-    async function saveEdit() {
-        const barcode = document.getElementById('edit-barcode').value;
-        const name = document.getElementById('edit-name').value;
-        const retail_price = parseFloat(document.getElementById('edit-price').value);
-        const stock_qty = parseInt(document.getElementById('edit-qty').value);
-
-        if(!name || isNaN(retail_price)) return alert("ກະລຸນາປ້ອນຂໍ້ມູນໃຫ້ຄົບຖ້ວນ");
-
-        log("ກຳລັງບັນທຶກ...");
-        const { error } = await _s.from('pos_products')
-            .update({ name, retail_price, stock_qty })
-            .eq('barcode', barcode);
-
-        if (error) {
-            alert("ເກີດຂໍ້ຜິດພາດ: " + error.message);
-        } else {
-            log("ແກ້ໄຂສຳເລັດ!");
-            closeModal();
-            loadInventory();
-        }
-    }
-
-    // --- DELETE FUNCTION ---
-    async function deleteItem(barcode) {
-        if (confirm("ທ່ານແນ່ໃຈບໍ່ວ່າຕ້ອງການລຶບສິນຄ້ານີ້ອອກຈາກລະບົບ?")) {
-            log("ກຳລັງລຶບ...");
-            const { error } = await _s.from('pos_products').delete().eq('barcode', barcode);
-            if (error) {
-                alert("ບໍ່ສາມາດລຶບໄດ້: " + error.message);
-            } else {
-                log("ລຶບສຳເລັດ!");
-                loadInventory();
-            }
-        }
-    }
-
-    document.addEventListener('DOMContentLoaded', () => {
-        initializeUser();
-        loadInventory();
-    });
+    document.addEventListener('DOMContentLoaded', () => { initializeUser(); loadInventory(); });
 </script>
 </body>
 </html>
