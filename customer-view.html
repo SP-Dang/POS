@@ -35,29 +35,33 @@
             <span id="total-display" style="font-size: 36px; font-weight: 800; color: #1e293b;">₭0</span>
         </div>
     </div>
-
-    <div class="payment-side">
-        <div id="payment-content">
-            <div id="amount">₭0</div>
-            <div id="qrcode-canvas">
-                <span style="color:#0f172a; font-weight: bold; font-size: 12px; text-align: center;">Scan to Pay</span>
-            </div>
-            <p style="margin-top: 20px; color: #94a3b8;">ກະລຸນາສະແກນຜ່ານແອັບທະນາຄານ</p>
-            <div style="margin-top: 30px; font-size: 12px; color: #3aba5e; opacity: 0.8;">
-        Powered by Somphone 02055348882
+<div class="payment-side">
+    <div id="payment-content">
+        <div id="amount">₭0</div>
+        <div id="qrcode-canvas">
+            <span style="color:#0f172a; font-weight: bold; font-size: 12px; text-align: center;">Scan to Pay</span>
         </div>
-        <div id="thank-you-msg" class="thank-you">
-            🙏 ຂໍຂອບໃຈ!<br><span style="font-size: 20px; color: white;">ຊຳລະເງິນສຳເລັດແລ້ວ</span>
-        </div>
+        <p id="payment-status-text" style="margin-top: 20px; color: #94a3b8;">ກະລຸນາສະແກນຜ່ານແອັບທະນາຄານ</p>
     </div>
+
+    <div id="thank-you-msg" class="thank-you">
+        🙏 ຂໍຂອບໃຈ!<br>
+        <span style="font-size: 20px; color: white;">ຊຳລະເງິນສຳເລັດແລ້ວ</span>
+    </div>
+
+    <div style="margin-top: 30px; font-size: 12px; color: #3aba5e; opacity: 0.8;">
+        Powered by Somphone 02055348882
+    </div>
+</div>
+
 <script>
     const u = "https://zddelixvencundnkccpq.supabase.co";
     const k = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpkZGVsaXh2ZW5jdW5kbmtjY3BxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUxMjQ1MzMsImV4cCI6MjA5MDcwMDUzM30.-RPvOYMLzftubrpJ4KSVrqL2eNaopjty30_TrnkGpBo";
     const _s = supabase.createClient(u, k);
 
-    // ປ່ຽນມາຟັງທັງ INSERT ແລະ UPDATE
     _s.channel('custom-pos')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'customer_display' }, payload => {
+          console.log("Change received!", payload); // ເພີ່ມ Log ເພື່ອເບິ່ງການປ່ຽນແປງ
           const data = payload.new;
           if (!data) return;
 
@@ -73,10 +77,10 @@
         document.getElementById('payment-content').style.display = 'block';
         document.getElementById('thank-you-msg').style.display = 'none';
         
-        document.getElementById('amount').innerText = "₭" + Number(data.amount).toLocaleString();
-        document.getElementById('total-display').innerText = "₭" + Number(data.amount).toLocaleString();
+        const amountValue = Number(data.amount) || 0;
+        document.getElementById('amount').innerText = "₭" + amountValue.toLocaleString();
+        document.getElementById('total-display').innerText = "₭" + amountValue.toLocaleString();
         
-        // ສະແດງລາຍການສິນຄ້າ
         const listContainer = document.getElementById('item-list');
         listContainer.innerHTML = data.items && data.items.length > 0 ? data.items.map(i => `
             <div class="item-row">
@@ -85,26 +89,30 @@
             </div>
         `).join('') : '<div class="waiting-box">ລໍຖ້າລາຍການສິນຄ້າ...</div>';
 
-        // ການຈັດການ QR Code
         const qrContainer = document.getElementById("qrcode-canvas");
-        const statusText = document.querySelector('.payment-side p');
+        const statusText = document.getElementById('payment-status-text');
         
         qrContainer.innerHTML = ""; 
 
-        if (data.qr_string && data.qr_string.length > 5) {
-            new QRCode(qrContainer, { text: data.qr_string, width: 180, height: 180 });
+        if (data.qr_string && data.qr_string.length > 10) {
+            new QRCode(qrContainer, { text: data.qr_string, width: 200, height: 200 });
             statusText.innerText = "ກະລຸນາສະແກນຜ່ານແອັບທະນາຄານ";
-        } else {
-            // ຖ້າ qr_string ວ່າງ (ກໍລະນີຈ່າຍເງິນສົດ)
-            qrContainer.innerHTML = '<div style="font-size:60px; margin-top:20px;">💵</div><div style="font-weight:bold; color:white; margin-top:10px;">CASH PAYMENT</div>';
+            statusText.style.color = "#94a3b8";
+        } else if (amountValue > 0) {
+            // ກໍລະນີຈ່າຍເງິນສົດ (ມີຍອດເງິນແຕ່ບໍ່ມີ QR)
+            qrContainer.innerHTML = '<div style="font-size:80px;">💵</div>';
             statusText.innerText = "ກະລຸນາຊຳລະເງິນສົດທີ່ເຄົາເຕີ";
+            statusText.style.color = "#10b981"; // ປ່ຽນເປັນສີຂຽວໃຫ້ເຫັນຊັດເຈນ
+        } else {
+            qrContainer.innerHTML = '<span style="color:#0f172a; font-weight: bold; font-size: 12px;">Scan to Pay</span>';
+            statusText.innerText = "ລໍຖ້າການເລືອກວິທີຊຳລະ";
         }
     }
 
     function showThankYou() {
         document.getElementById('payment-content').style.display = 'none';
         document.getElementById('thank-you-msg').style.display = 'block';
-        setTimeout(resetUI, 5000);
+        setTimeout(resetUI, 5000); // ສະແດງຂໍ້ຄວາມຂອບໃຈ 5 ວິນາທີແລ້ວ Reset
     }
 
     function resetUI() {
@@ -114,7 +122,9 @@
         document.getElementById('qrcode-canvas').innerHTML = '<span style="color:#0f172a; font-weight: bold; font-size: 12px;">Scan to Pay</span>';
         document.getElementById('payment-content').style.display = 'block';
         document.getElementById('thank-you-msg').style.display = 'none';
+        document.getElementById('payment-status-text').innerText = "ກະລຸນາສະແກນຜ່ານແອັບທະນາຄານ";
     }
 </script>
-    </body>
+    
+</body>
 </html>
