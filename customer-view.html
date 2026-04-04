@@ -2,78 +2,107 @@
 <html lang="lo">
 <head>
     <meta charset="UTF-8">
-    <title>LSM POS | ລູກຄ້າຊຳລະເງິນ</title>
+    <title>LSM POS | Customer Display</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Phetsarath&family=Plus+Jakarta+Sans:wght@400;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Phetsarath&family=Plus+Jakarta+Sans:wght@400;700;800&display=swap" rel="stylesheet">
     <style>
-        :root { --primary: #10b981; --bg: #f8fafc; --lao: 'Phetsarath', sans-serif; }
-        body { margin: 0; background: var(--bg); font-family: 'Plus Jakarta Sans', var(--lao); display: flex; align-items: center; justify-content: center; height: 100vh; }
+        :root { --primary: #10b981; --bg: #f1f5f9; --lao: 'Phetsarath', sans-serif; }
+        body { margin: 0; background: var(--bg); font-family: 'Plus Jakarta Sans', var(--lao); display: flex; height: 100vh; overflow: hidden; }
         
-        .card { background: white; padding: 50px; border-radius: 40px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.1); width: 450px; text-align: center; transition: transform 0.3s ease; }
-        .card-active { border: 4px solid var(--primary); transform: scale(1.02); }
+        /* Left Side: Order Summary */
+        .order-details { flex: 1; padding: 40px; display: flex; flex-direction: column; background: white; }
+        .item-list { flex: 1; overflow-y: auto; margin-top: 20px; }
+        .item-row { display: flex; justify-content: space-between; padding: 15px 0; border-bottom: 1px solid #f1f5f9; font-size: 18px; }
         
-        h1 { margin:0; color: #0f172a; }
-        #amount { font-size: 56px; font-weight: 800; color: var(--primary); margin: 20px 0; }
-        
-        #qrcode-canvas { display: flex; justify-content: center; align-items: center; margin: 30px auto; min-height: 280px; width: 280px; background: white; border-radius: 10px; }
-        .waiting-text { color: #94a3b8; font-style: italic; font-size: 18px; }
-        
-        .footer { color: #64748b; font-size: 14px; margin-top: 20px; line-height: 1.5; }
+        /* Right Side: QR Payment */
+        .payment-side { width: 450px; background: #0f172a; color: white; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px; text-align: center; }
+        #amount { font-size: 50px; font-weight: 800; color: var(--primary); margin-bottom: 20px; }
+        #qrcode-canvas { background: white; padding: 15px; border-radius: 20px; min-height: 200px; width: 200px; display: flex; align-items: center; justify-content: center; }
+        .waiting-box { font-size: 20px; color: #64748b; }
+        .thank-you { font-size: 32px; color: var(--primary); font-weight: 800; display: none; }
     </style>
 </head>
 <body>
 
-    <div class="card" id="main-card">
-        <h1 id="status-text">ຊຳລະເງິນ (Scan to Pay)</h1>
-        <div id="amount">₭0</div>
-        
-        <div id="qrcode-canvas">
-            <div class="waiting-text">ກຳລັງລໍຖ້າລາຍການຊຳລະ...</div>
+    <div class="order-details">
+        <h1 style="margin:0; font-size: 28px;">ລາຍການສິນຄ້າຂອງທ່ານ</h1>
+        <div class="item-list" id="item-list">
+            <div class="waiting-box" style="margin-top:50px; text-align:center;">ລໍຖ້າລາຍການສິນຄ້າ...</div>
         </div>
-        
-        <div class="footer">
-            <b>LSM Garage & Service</b><br> 
-            ບໍລິການດ້ວຍໃຈ ເພື່ອຄວາມປອດໄພຂອງທ່ານ
+        <div style="border-top: 2px solid #eee; padding-top: 20px; display: flex; justify-content: space-between; align-items: center;">
+            <span style="font-size: 24px; font-weight: 700;">ຍອດລວມທັງໝົດ:</span>
+            <span id="total-display" style="font-size: 36px; font-weight: 800; color: #1e293b;">₭0</span>
+        </div>
+    </div>
+
+    <div class="payment-side">
+        <div id="payment-content">
+            <div id="amount">₭0</div>
+            <div id="qrcode-canvas">
+                <span style="color:#0f172a; font-weight: bold; font-size: 12px; text-align: center;">Scan to Pay</span>
+            </div>
+            <p style="margin-top: 20px; color: #94a3b8;">ກະລຸນາສະແກນຜ່ານແອັບທະນາຄານ</p>
+        </div>
+        <div id="thank-you-msg" class="thank-you">
+            🙏 ຂໍຂອບໃຈ!<br><span style="font-size: 20px; color: white;">ຊຳລະເງິນສຳເລັດແລ້ວ</span>
         </div>
     </div>
 
     <script>
-        // ປ່ຽນເປັນ Key ຂອງທ່ານໃຫ້ກົງກັບໜ້າ checkout
-        const u = "https://zddelixvencundnkccpq.supabase.co"; 
+        const u = "https://zddelixvencundnkccpq.supabase.co";
         const k = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpkZGVsaXh2ZW5jdW5kbmtjY3BxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUxMjQ1MzMsImV4cCI6MjA5MDcwMDUzM30.-RPvOYMLzftubrpJ4KSVrqL2eNaopjty30_TrnkGpBo";
         const _s = supabase.createClient(u, k);
 
-        // 1. ເປີດຮັບສັນຍານ Realtime ຈາກ Supabase
-        _s.channel('customer-view-channel')
+        _s.channel('custom-pos')
           .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'customer_display' }, payload => {
-              updateDisplay(payload.new);
+              const data = payload.new;
+              
+              if (data.status === 'PAID') {
+                  showThankYou();
+              } else if (data.amount > 0) {
+                  updateUI(data);
+              } else {
+                  resetUI();
+              }
           })
-          .subscribe((status) => {
-              console.log("Realtime connection status:", status);
-          });
+          .subscribe();
 
-        function updateDisplay(data) {
-            // ອັບເດດໂຕເລກເງິນ
-            document.getElementById('amount').innerText = `₭${Number(data.amount).toLocaleString()}`;
+        function updateUI(data) {
+            document.getElementById('payment-content').style.display = 'block';
+            document.getElementById('thank-you-msg').style.display = 'none';
             
-            // ລຶບຂໍ້ຄວາມ "ກຳລັງລໍຖ້າ" ອອກ
+            document.getElementById('amount').innerText = "₭" + Number(data.amount).toLocaleString();
+            document.getElementById('total-display').innerText = "₭" + Number(data.amount).toLocaleString();
+            
+            // ສະແດງລາຍການສິນຄ້າ (Items)
+            const listContainer = document.getElementById('item-list');
+            listContainer.innerHTML = data.items ? data.items.map(i => `
+                <div class="item-row">
+                    <span>${i.name} x ${i.qty}</span>
+                    <span style="font-weight:700;">${(i.retail_price * i.qty).toLocaleString()}</span>
+                </div>
+            `).join('') : '<div class="waiting-box">ກຳລັງປະມວນຜົນ...</div>';
+
+            // ສ້າງ QR (ຂະໜາດນ້ອຍລົງເປັນ 180)
             const qrContainer = document.getElementById("qrcode-canvas");
             qrContainer.innerHTML = ""; 
-            
-            // ສ້າງ QR Code ໃໝ່ຈາກ String ທີ່ສົ່ງມາ
-            new QRCode(qrContainer, {
-                text: data.qr_string,
-                width: 280, 
-                height: 280,
-                colorDark: "#0f172a",
-                correctLevel: QRCode.CorrectLevel.M
-            });
+            new QRCode(qrContainer, { text: data.qr_string, width: 180, height: 180 });
+        }
 
-            // ສ້າງ Effect ກະພິບໃຫ້ລູກຄ້າຮູ້ວ່າມີຍອດເຂົ້າໃໝ່
-            const card = document.getElementById('main-card');
-            card.classList.add('card-active');
-            setTimeout(() => { card.classList.remove('card-active'); }, 600);
+        function showThankYou() {
+            document.getElementById('payment-content').style.display = 'none';
+            document.getElementById('thank-you-msg').style.display = 'block';
+            setTimeout(resetUI, 5000); // ກັບຄືນໜ້າປົກກະຕິຫຼັງ 5 ວິນາທີ
+        }
+
+        function resetUI() {
+            document.getElementById('amount').innerText = "₭0";
+            document.getElementById('total-display').innerText = "₭0";
+            document.getElementById('item-list').innerHTML = '<div class="waiting-box">ລໍຖ້າລາຍການສິນຄ້າ...</div>';
+            document.getElementById('qrcode-canvas').innerHTML = '<span style="color:#0f172a; font-weight: bold; font-size: 12px;">Scan to Pay</span>';
+            document.getElementById('payment-content').style.display = 'block';
+            document.getElementById('thank-you-msg').style.display = 'none';
         }
     </script>
 </body>
