@@ -1,13 +1,13 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="lo">
 <head>
     <meta charset="UTF-8">
-    <title>LSM POS | Reports & Alerts</title>
+    <title>LSM POS | ບົດລາຍງານ ແລະ ການແຈ້ງເຕືອນ</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Phetsarath&family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
     <style>
-        :root { --primary: #10b981; --danger: #ef4444; --sidebar: #0f172a; --bg: #f8fafc; --warning: #f59e0b; }
-        body { margin: 0; display: flex; background: var(--bg); font-family: 'Plus Jakarta Sans', sans-serif; height: 100vh; overflow: hidden; }
+        :root { --primary: #10b981; --danger: #ef4444; --sidebar: #0f172a; --bg: #f8fafc; --warning: #f59e0b; --lao-font: 'Phetsarath', sans-serif; }
+        body { margin: 0; display: flex; background: var(--bg); font-family: 'Plus Jakarta Sans', var(--lao-font); height: 100vh; overflow: hidden; }
         .sidebar { width: 260px; background: var(--sidebar); color: white; padding: 30px 20px; display: flex; flex-direction: column; }
         .logo { font-weight: 800; font-size: 22px; color: var(--primary); margin-bottom: 40px; display: flex; align-items: center; gap: 10px; }
         .main { flex: 1; padding: 40px; overflow-y: auto; }
@@ -25,63 +25,64 @@
 <body>
    <nav class="sidebar">
     <div class="logo"><span>⚡</span> mPOS</div>
-    <a href="index.html" class="nav-item">📊 Dashboard</a> 
-    <a href="pos-checkout.html" class="nav-item">🛒 Checkout</a> 
-    <a href="pos-orders.html" class="nav-item">📄 Order History</a>
-    <a href="pos-inventory.html" class="nav-item">📦 Inventory</a>
-    <a href="pos-reports.html" class="nav-item nav-active">📊 Reports</a>
+    <a href="index.html" class="nav-item">📊 ແຜງຄວບຄຸມ</a> 
+    <a href="pos-checkout.html" class="nav-item">🛒 ຂາຍສິນຄ້າ</a> 
+    <a href="pos-orders.html" class="nav-item">📄 ປະຫວັດການຂາຍ</a>
+    <a href="pos-inventory.html" class="nav-item">📦 ຄັງສິນຄ້າ</a>
+    <a href="pos-reports.html" class="nav-item nav-active">📊 ບົດລາຍງານ</a>
     
     <div class="user-box" style="padding: 15px; border-top: 1px solid rgba(255,255,255,0.1); margin-top: auto;">
-        <div style="font-size: 0.7rem; color: #94a3b8; margin-bottom: 5px; opacity: 0.7;">LOGGED IN AS:</div>
-        <div id="display-user-name" style="font-weight: 600; color: white; margin-bottom: 15px; font-size: 0.9rem;">Loading...</div>
-        <button onclick="handleLogout()" style="background: rgba(239, 68, 68, 0.2); color: #f87171; border: none; width: 100%; text-align: left; padding: 10px; cursor: pointer; border-radius: 8px; font-weight: 600;">🚪 Log Out</button>
+        <div style="font-size: 0.7rem; color: #94a3b8; margin-bottom: 5px; opacity: 0.7;">ເຂົ້າລະບົບໂດຍ:</div>
+        <div id="display-user-name" style="font-weight: 600; color: white; margin-bottom: 15px; font-size: 0.9rem;">ກຳລັງໂຫຼດ...</div>
+        <button onclick="handleLogout()" style="background: rgba(239, 68, 68, 0.2); color: #f87171; border: none; width: 100%; text-align: left; padding: 10px; cursor: pointer; border-radius: 8px; font-weight: 600;">🚪 ອອກຈາກລະບົບ</button>
     </div>
 </nav>
 
     <main class="main">
         <div style="display:flex; justify-content:space-between; align-items:center;">
-            <h1>Executive Summary</h1>
-            <button onclick="location.reload()" style="padding:10px 20px; border-radius:10px; border:none; cursor:pointer; background:#fff; font-weight:600; border:1px solid #e2e8f0;">🔄 Refresh Data</button>
+            <h1>ສະບຸບໂດຍຫຍໍ້</h1>
+            <button onclick="location.reload()" style="padding:10px 20px; border-radius:10px; border:none; cursor:pointer; background:#fff; font-weight:600; border:1px solid #e2e8f0;">🔄 ໂຫຼດຂໍ້ມູນໃໝ່</button>
         </div>
 
         <div class="stat-card">
-            <span style="color:#64748b; font-weight:600;">Net Revenue (Excluding Returns)</span>
+            <span style="color:#64748b; font-weight:600;">ລາຍຮັບສຸດທິ (ບໍ່ລວມລາຍການຄືນສິນຄ້າ)</span>
             <div id="today-revenue" style="font-size:36px; font-weight:800; color:var(--primary); margin:10px 0;">₭0</div>
-            <span id="sale-count" style="font-size:12px; color:#94a3b8;">0 Valid Transactions</span>
+            <span id="sale-count" style="font-size:12px; color:#94a3b8;">0 ລາຍການທີ່ສົມບູນ</span>
         </div>
 
-        <h2 style="color:var(--danger)">⚠️ Low Stock Re-order List</h2>
+        <h2 style="color:var(--danger)">⚠️ ລາຍການສະຕ໋ອກຕຳກ່ອນກຳໜົດ ຕ້ອງສັ່ງໃໝ່</h2>
         <div class="stat-card" style="border-left: 6px solid var(--danger); padding:0;">
             <table>
-                <thead><tr><th>Part / Item</th><th>Stock</th><th>Min</th><th>Action</th></tr></thead>
+                <thead><tr><th>ລາຍການ</th><th>ຄົງເຫຼືອ</th><th>ຂັ້ນຕຳ</th><th>ສະຖານະ</th></tr></thead>
                 <tbody id="low-stock-list"></tbody>
             </table>
         </div>
 
-        <h2 style="margin-top:40px; color:var(--warning)">📋 Returns by Staff (Audit Trail)</h2>
+        <h2 style="margin-top:40px; color:var(--warning)">📋 ລາຍການສົ່ງສິນຄ້າຄືນໂດຍພະນັກງານ</h2>
         <div class="stat-card" style="border-left: 6px solid var(--warning); padding:0;">
             <table>
                 <thead>
                     <tr>
-                        <th>Staff Name</th>
-                        <th>Return Count</th>
-                        <th>Total Value Refunded</th>
+                        <th>ຊື່ພະນັກງານ</th>
+                        <th>ຈຳນວນຄືນ</th>
+                        <th>ມູນຄ່າລວມທີ່ຄືນ</th>
                     </tr>
                 </thead>
                 <tbody id="staff-return-list"></tbody>
             </table>
         </div>
 
-        <h2 style="margin-top:40px;">Recent Sales Log</h2>
+        <h2 style="margin-top:40px;">ລາຍການຂາຍປະຈຸບັນ</h2>
         <div class="stat-card" style="padding:0;">
             <table style="box-shadow:none;">
-                <thead><tr><th>Time (+7)</th><th>Method</th><th>Status</th><th>Amount</th></tr></thead>
+                <thead><tr><th>ເວລາ (+7)</th><th>ການຊຳລະ</th><th>ສະຖານະ</th><th>ຍອດລວມ</th></tr></thead>
                 <tbody id="sales-list"></tbody>
             </table>
         </div>
     </main>
 
     <script>
+        // ... (Keep your existing script here, it works perfectly) ...
         const u = "https://zddelixvencundnkccpq.supabase.co"; 
         const k = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpkZGVsaXh2ZW5jdW5kbmtjY3BxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUxMjQ1MzMsImV4cCI6MjA5MDcwMDUzM30.-RPvOYMLzftubrpJ4KSVrqL2eNaopjty30_TrnkGpBo";
         const _s = supabase.createClient(u, k);
@@ -98,8 +99,6 @@
 
                 let netTotal = 0;
                 let validTransactionCount = 0;
-
-                // --- NEW: Object to track staff returns ---
                 const staffStats = {};
 
                 document.getElementById('sales-list').innerHTML = sales.map(s => {
@@ -109,10 +108,7 @@
                         netTotal += parseFloat(s.total_amount);
                         validTransactionCount++;
                     } else {
-                        // --- TRACK STAFF DATA IF REFUNDED ---
-                        // Use the column 'return_processed_by' we added earlier
-                        const staff = s.return_processed_by || "System/Manual";
-                        
+                        const staff = s.return_processed_by || "ລະບົບ/ບໍ່ລະບຸຊື່";
                         if (!staffStats[staff]) {
                             staffStats[staff] = { count: 0, amount: 0 };
                         }
@@ -122,8 +118,8 @@
 
                     const time = new Date(s.created_at).toLocaleString('en-GB', { timeZone: 'Asia/Bangkok', hour: '2-digit', minute: '2-digit' });
                     const statusBadge = isRefunded 
-                        ? `<span class="badge-refund">REFUNDED</span>` 
-                        : `<span style="color:#10b981; font-size:10px; font-weight:800;">COMPLETED</span>`;
+                        ? `<span class="badge-refund">ຄືນສິນຄ້າ</span>` 
+                        : `<span style="color:#10b981; font-size:10px; font-weight:800;">ສຳເລັດ</span>`;
 
                     return `
                         <tr style="${isRefunded ? 'opacity: 0.6; background: #fafafa;' : ''}">
@@ -136,7 +132,6 @@
                         </tr>`;
                 }).join('');
                 
-                // --- RENDER STAFF RETURNS TABLE ---
                 const staffTableBody = document.getElementById('staff-return-list');
                 const staffNames = Object.keys(staffStats);
 
@@ -144,16 +139,16 @@
                     staffTableBody.innerHTML = staffNames.map(name => `
                         <tr>
                             <td><b>${name}</b></td>
-                            <td>${staffStats[name].count} Returns</td>
+                            <td>${staffStats[name].count} ລາຍການ</td>
                             <td style="color:var(--danger); font-weight:800;">${formatLAK(staffStats[name].amount)}</td>
                         </tr>
                     `).join('');
                 } else {
-                    staffTableBody.innerHTML = '<tr><td colspan="3" style="text-align:center; padding:20px; color:#94a3b8;">No returns found in records</td></tr>';
+                    staffTableBody.innerHTML = '<tr><td colspan="3" style="text-align:center; padding:20px; color:#94a3b8;">ບໍ່ມີລາຍການຄືນສິນຄ້າ</td></tr>';
                 }
 
                 document.getElementById('today-revenue').innerText = formatLAK(netTotal);
-                document.getElementById('sale-count').innerText = validTransactionCount + " Valid Transactions";
+                document.getElementById('sale-count').innerText = validTransactionCount + " ລາຍການທີ່ສົມບູນ";
 
                 const { data: prods, error: prodError } = await _s.from('pos_products').select('*');
                 if (prodError) throw prodError;
@@ -164,9 +159,9 @@
                         <td><b>${p.name}</b><br><small style="color:#94a3b8">${p.barcode}</small></td>
                         <td style="color:var(--danger); font-weight:800;">${p.stock_qty}</td>
                         <td>${p.min_stock}</td>
-                        <td><span class="badge-red">REORDER</span></td>
+                        <td><span class="badge-red">ສັ່ງຕື່ມ</span></td>
                     </tr>
-                `).join('') : '<tr><td colspan="4" style="text-align:center; padding:20px;">✅ All stock levels normal</td></tr>';
+                `).join('') : '<tr><td colspan="4" style="text-align:center; padding:20px;">✅ ສະຕ໋ອກສິນຄ້າປົກກະຕິທັງໝົດ</td></tr>';
             } catch (err) {
                 console.error("Data load error:", err.message);
             }
@@ -181,7 +176,7 @@
         }
 
         function handleLogout() {
-            if (confirm("Are you sure you want to log out?")) {
+            if (confirm("ທ່ານແນ່ໃຈບໍ່ວ່າຕ້ອງການອອກຈາກລະບົບ?")) {
                 localStorage.removeItem('lsm_user_name');
                 localStorage.removeItem('lsm_role');
                 window.location.href = 'login.html';
