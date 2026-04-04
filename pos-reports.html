@@ -58,6 +58,20 @@
             </table>
         </div>
 
+        <h2 style="margin-top:40px; color:var(--warning)">📋 Returns by Staff (Audit Trail)</h2>
+        <div class="stat-card" style="border-left: 6px solid var(--warning); padding:0;">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Staff Name</th>
+                        <th>Return Count</th>
+                        <th>Total Value Refunded</th>
+                    </tr>
+                </thead>
+                <tbody id="staff-return-list"></tbody>
+            </table>
+        </div>
+
         <h2 style="margin-top:40px;">Recent Sales Log</h2>
         <div class="stat-card" style="padding:0;">
             <table style="box-shadow:none;">
@@ -75,7 +89,6 @@
 
         async function init() {
             try {
-                // 1. Fetch Sales (Now including status)
                 const { data: sales, error: salesError } = await _s
                     .from('pos_sales')
                     .select('*')
@@ -86,13 +99,25 @@
                 let netTotal = 0;
                 let validTransactionCount = 0;
 
+                // --- NEW: Object to track staff returns ---
+                const staffStats = {};
+
                 document.getElementById('sales-list').innerHTML = sales.map(s => {
-                    const isRefunded = s.status === 'Refunded';
+                    const isRefunded = (s.status || "").toUpperCase() === 'REFUNDED';
                     
-                    // Only add to revenue if NOT refunded
                     if (!isRefunded) {
                         netTotal += parseFloat(s.total_amount);
                         validTransactionCount++;
+                    } else {
+                        // --- TRACK STAFF DATA IF REFUNDED ---
+                        // Use the column 'return_processed_by' we added earlier
+                        const staff = s.return_processed_by || "System/Manual";
+                        
+                        if (!staffStats[staff]) {
+                            staffStats[staff] = { count: 0, amount: 0 };
+                        }
+                        staffStats[staff].count += 1;
+                        staffStats[staff].amount += parseFloat(s.total_amount);
                     }
 
                     const time = new Date(s.created_at).toLocaleString('en-GB', { timeZone: 'Asia/Bangkok', hour: '2-digit', minute: '2-digit' });
@@ -111,10 +136,25 @@
                         </tr>`;
                 }).join('');
                 
+                // --- RENDER STAFF RETURNS TABLE ---
+                const staffTableBody = document.getElementById('staff-return-list');
+                const staffNames = Object.keys(staffStats);
+
+                if (staffNames.length > 0) {
+                    staffTableBody.innerHTML = staffNames.map(name => `
+                        <tr>
+                            <td><b>${name}</b></td>
+                            <td>${staffStats[name].count} Returns</td>
+                            <td style="color:var(--danger); font-weight:800;">${formatLAK(staffStats[name].amount)}</td>
+                        </tr>
+                    `).join('');
+                } else {
+                    staffTableBody.innerHTML = '<tr><td colspan="3" style="text-align:center; padding:20px; color:#94a3b8;">No returns found in records</td></tr>';
+                }
+
                 document.getElementById('today-revenue').innerText = formatLAK(netTotal);
                 document.getElementById('sale-count').innerText = validTransactionCount + " Valid Transactions";
 
-                // 2. Fetch Low Stock
                 const { data: prods, error: prodError } = await _s.from('pos_products').select('*');
                 if (prodError) throw prodError;
 
@@ -132,7 +172,6 @@
             }
         }
 
-        // --- AUTH & LOGOUT COPIED FROM YOUR ORIGINAL ---
         function initializeUser() {
             const name = localStorage.getItem('lsm_user_name');
             const role = localStorage.getItem('lsm_role');
