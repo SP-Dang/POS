@@ -50,88 +50,71 @@
             🙏 ຂໍຂອບໃຈ!<br><span style="font-size: 20px; color: white;">ຊຳລະເງິນສຳເລັດແລ້ວ</span>
         </div>
     </div>
+<script>
+    const u = "https://zddelixvencundnkccpq.supabase.co";
+    const k = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpkZGVsaXh2ZW5jdW5kbmtjY3BxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUxMjQ1MzMsImV4cCI6MjA5MDcwMDUzM30.-RPvOYMLzftubrpJ4KSVrqL2eNaopjty30_TrnkGpBo";
+    const _s = supabase.createClient(u, k);
 
-    <script>
-        const u = "https://zddelixvencundnkccpq.supabase.co";
-        const k = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpkZGVsaXh2ZW5jdW5kbmtjY3BxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUxMjQ1MzMsImV4cCI6MjA5MDcwMDUzM30.-RPvOYMLzftubrpJ4KSVrqL2eNaopjty30_TrnkGpBo";
-        const _s = supabase.createClient(u, k);
+    // ປ່ຽນມາຟັງທັງ INSERT ແລະ UPDATE
+    _s.channel('custom-pos')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'customer_display' }, payload => {
+          const data = payload.new;
+          if (!data) return;
 
-        _s.channel('custom-pos')
-          .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'customer_display' }, payload => {
-              const data = payload.new;
-              
-              if (data.status === 'PAID') {
-                  showThankYou();
-              } else if (data.amount > 0) {
-                  updateUI(data);
-              } else {
-                  resetUI();
-              }
-          })
-          .subscribe();
+          if (data.status === 'PAID') {
+              showThankYou();
+          } else {
+              updateUI(data);
+          }
+      })
+      .subscribe();
 
-function updateUI(data) {
-    const paymentContent = document.getElementById('payment-content');
-    const thankYouMsg = document.getElementById('thank-you-msg');
-    const qrContainer = document.getElementById("qrcode-canvas");
-    const amountDisplay = document.getElementById('amount');
-    const totalDisplay = document.getElementById('total-display');
-    const listContainer = document.getElementById('item-list');
+    function updateUI(data) {
+        document.getElementById('payment-content').style.display = 'block';
+        document.getElementById('thank-you-msg').style.display = 'none';
+        
+        document.getElementById('amount').innerText = "₭" + Number(data.amount).toLocaleString();
+        document.getElementById('total-display').innerText = "₭" + Number(data.amount).toLocaleString();
+        
+        // ສະແດງລາຍການສິນຄ້າ
+        const listContainer = document.getElementById('item-list');
+        listContainer.innerHTML = data.items && data.items.length > 0 ? data.items.map(i => `
+            <div class="item-row">
+                <span>${i.name} x ${i.qty}</span>
+                <span style="font-weight:700;">${(i.retail_price * i.qty).toLocaleString()}</span>
+            </div>
+        `).join('') : '<div class="waiting-box">ລໍຖ້າລາຍການສິນຄ້າ...</div>';
 
-    paymentContent.style.display = 'block';
-    thankYouMsg.style.display = 'none';
-    
-    // ອັບເດດລາຄາ
-    const formattedAmount = "₭" + Number(data.amount).toLocaleString();
-    amountDisplay.innerText = formattedAmount;
-    totalDisplay.innerText = formattedAmount;
-    
-    // ສະແດງລາຍການສິນຄ້າ
-    listContainer.innerHTML = data.items ? data.items.map(i => `
-        <div class="item-row">
-            <span>${i.name} x ${i.qty}</span>
-            <span style="font-weight:700;">${(i.retail_price * i.qty).toLocaleString()}</span>
-        </div>
-    `).join('') : '<div class="waiting-box">ກຳລັງປະມວນຜົນ...</div>';
+        // ການຈັດການ QR Code
+        const qrContainer = document.getElementById("qrcode-canvas");
+        const statusText = document.querySelector('.payment-side p');
+        
+        qrContainer.innerHTML = ""; 
 
-    // --- ສ່ວນທີ່ແກ້ໄຂໃໝ່: ກວດເຊັກ QR String ---
-    qrContainer.innerHTML = ""; 
-    
-    if (data.qr_string && data.qr_string.trim() !== "") {
-        // ຖ້າມີ QR String ໃຫ້ສ້າງ QR Code
-        new QRCode(qrContainer, { 
-            text: data.qr_string, 
-            width: 180, 
-            height: 180,
-            colorDark : "#0f172a",
-            colorLight : "#ffffff"
-        });
-        document.querySelector('.payment-side p').innerText = "ກະລຸນາສະແກນຜ່ານແອັບທະນາຄານ";
-    } else {
-        // ຖ້າບໍ່ມີ QR String (ກໍລະນີຈ່າຍເງິນສົດ)
-        qrContainer.innerHTML = `
-            <div style="color:#0f172a; display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%;">
-                <span style="font-size: 40px;">💵</span>
-                <span style="font-weight: bold; font-size: 16px; margin-top:10px;">ຈ່າຍເປັນເງິນສົດ</span>
-            </div>`;
-        document.querySelector('.payment-side p').innerText = "ກະລຸນາຊຳລະເງິນສົດທີ່ເຄົາເຕີ";
+        if (data.qr_string && data.qr_string.length > 5) {
+            new QRCode(qrContainer, { text: data.qr_string, width: 180, height: 180 });
+            statusText.innerText = "ກະລຸນາສະແກນຜ່ານແອັບທະນາຄານ";
+        } else {
+            // ຖ້າ qr_string ວ່າງ (ກໍລະນີຈ່າຍເງິນສົດ)
+            qrContainer.innerHTML = '<div style="font-size:60px; margin-top:20px;">💵</div><div style="font-weight:bold; color:white; margin-top:10px;">CASH PAYMENT</div>';
+            statusText.innerText = "ກະລຸນາຊຳລະເງິນສົດທີ່ເຄົາເຕີ";
+        }
     }
-}
 
-        function showThankYou() {
-            document.getElementById('payment-content').style.display = 'none';
-            document.getElementById('thank-you-msg').style.display = 'block';
-            setTimeout(resetUI, 5000); // ກັບຄືນໜ້າປົກກະຕິຫຼັງ 5 ວິນາທີ
-        }
+    function showThankYou() {
+        document.getElementById('payment-content').style.display = 'none';
+        document.getElementById('thank-you-msg').style.display = 'block';
+        setTimeout(resetUI, 5000);
+    }
 
-        function resetUI() {
-            document.getElementById('amount').innerText = "₭0";
-            document.getElementById('total-display').innerText = "₭0";
-            document.getElementById('item-list').innerHTML = '<div class="waiting-box">ລໍຖ້າລາຍການສິນຄ້າ...</div>';
-            document.getElementById('qrcode-canvas').innerHTML = '<span style="color:#0f172a; font-weight: bold; font-size: 12px;">Scan to Pay</span>';
-            document.getElementById('payment-content').style.display = 'block';
-            document.getElementById('thank-you-msg').style.display = 'none';
-        }
-    </script>
-</body>
+    function resetUI() {
+        document.getElementById('amount').innerText = "₭0";
+        document.getElementById('total-display').innerText = "₭0";
+        document.getElementById('item-list').innerHTML = '<div class="waiting-box">ລໍຖ້າລາຍການສິນຄ້າ...</div>';
+        document.getElementById('qrcode-canvas').innerHTML = '<span style="color:#0f172a; font-weight: bold; font-size: 12px;">Scan to Pay</span>';
+        document.getElementById('payment-content').style.display = 'block';
+        document.getElementById('thank-you-msg').style.display = 'none';
+    }
+</script>
+    </body>
 </html>
