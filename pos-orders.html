@@ -152,16 +152,22 @@
         }
     }
 
-    // 3. CHANGE: Update status to 'Refunded' instead of deleting
+   // 3. NEW: Update status AND "Stamp" the staff name who processed the return
+    const staffName = localStorage.getItem('lsm_user_name') || 'Unknown Staff';
+
     const { error: updateErr } = await _s
         .from('pos_sales')
-        .update({ status: 'Refunded' })
+        .update({ 
+            status: 'Refunded', 
+            return_processed_by: staffName 
+        })
         .eq('id', orderId);
 
     if (!updateErr) {
-        alert("✅ ສຳເລັດ! ສະຖານະປ່ຽນເປັນ 'ຄືນສິນຄ້າ' ແລະ ເພີ່ມສະຕັອກແລ້ວ.");
-        lookupOrder(); // Refresh the view to show the new status
+        alert(`✅ ສຳເລັດ! ສະຖານະປ່ຽນເປັນ 'Refunded' ໂດຍ: ${staffName}`);
+        lookupOrder(); // Refresh the view to show the new status and hide the return button
     } else {
+        console.error("Update Error:", updateErr);
         alert("Error updating status: " + updateErr.message);
     }
 }
