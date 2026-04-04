@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>mPOS | Professional Checkout</title>
+    <title>mPOS | Checkout & Sync</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Phetsarath:wght@400;700&family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
@@ -13,9 +13,9 @@
             --primary: #10b981; --sidebar: #0f172a; --bg: #f8fafc; --text: #1e293b; --text-muted: #94a3b8; 
             --lao-font: 'Phetsarath', sans-serif;
         }
-        * { box-sizing: border-box; font-family: var(--lao-font), 'Plus Jakarta Sans', sans-serif; line-height: 1.5; }
+        * { box-sizing: border-box; font-family: var(--lao-font), sans-serif; line-height: 1.5; }
         
-        /* Layout Grid: Sidebar(200px) | Cart(Flexible) | Summary(320px) */
+        /* Layout Grid ໃໝ່ຕາມທີ່ທ່ານຕ້ອງການ */
         body { 
             margin: 0; 
             display: grid; 
@@ -26,145 +26,73 @@
             overflow: hidden; 
         }
 
-        /* 1. Sidebar Nav */
-        .sidebar { 
-            background: var(--sidebar); 
-            color: white; 
-            padding: 25px 15px; 
-            display: flex; 
-            flex-direction: column;
-            border-right: 1px solid rgba(255,255,255,0.05);
-        }
+        /* Sidebar Nav (ແຄບລົງ) */
+        .sidebar { background: var(--sidebar); color: white; padding: 25px 15px; display: flex; flex-direction: column; border-right: 1px solid rgba(255,255,255,0.05); }
         .logo { font-weight: 800; font-size: 20px; color: var(--primary); margin-bottom: 30px; text-decoration: none; display: flex; align-items: center; gap: 8px; }
-        .nav-item { padding: 12px 14px; border-radius: 10px; color: #94a3b8; text-decoration: none; margin-bottom: 5px; font-weight: 600; display: flex; align-items: center; gap: 10px; transition: 0.2s; font-size: 13px; }
-        .nav-item:hover { background: rgba(255,255,255,0.05); color: white; }
+        .nav-item { padding: 12px 14px; border-radius: 10px; color: #94a3b8; text-decoration: none; margin-bottom: 5px; font-weight: 600; display: flex; align-items: center; gap: 10px; font-size: 13px; }
         .nav-item.active { background: var(--primary); color: white; }
 
-        /* 2. Cart Section (Middle - Wide) */
-        .cart-section { padding: 25px; overflow-y: auto; background: var(--bg); }
-        .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-        .search-box { padding: 10px 15px; border-radius: 10px; border: 1px solid #e2e8f0; width: 250px; outline: none; font-size: 14px; font-weight: 600; }
+        /* Cart Section (ກວ້າງຂຶ້ນ) */
+        .cart-section { padding: 25px; overflow-y: auto; }
+        .cart-table { width: 100%; border-collapse: collapse; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+        .cart-table th { background: #f8fafc; padding: 12px; text-align: left; font-size: 11px; color: var(--text-muted); }
+        .cart-table td { padding: 12px; border-bottom: 1px solid #f1f5f9; }
 
-        .cart-table { width: 100%; border-collapse: collapse; background: white; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.03); }
-        .cart-table th { background: #f8fafc; padding: 12px 15px; text-align: left; font-size: 11px; text-transform: uppercase; color: var(--text-muted); }
-        .cart-table td { padding: 15px; border-bottom: 1px solid #f1f5f9; }
-        .item-name { font-weight: 700; font-size: 15px; color: var(--text); }
-
-        /* 3. Summary Section (Right Panel) */
-        .summary-section { 
-            background: white; 
-            border-left: 1px solid #e2e8f0; 
-            padding: 25px; 
-            display: flex; 
-            flex-direction: column;
-            overflow-y: auto;
-        }
-        
-        .loyalty-box { background: #f0fdf4; border: 1px dashed #10b981; border-radius: 12px; padding: 15px; margin-bottom: 20px; }
-        .loyalty-input { width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #bbf7d0; margin-top: 8px; outline: none; font-size: 14px; }
-
-        .payment-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 15px 0; }
-        .pay-btn { border: 2px solid #f1f5f9; padding: 12px; border-radius: 12px; cursor: pointer; text-align: center; font-weight: 700; background: white; font-size: 14px; }
+        /* Summary Section (ແຄບລົງ) */
+        .summary-section { background: white; border-left: 1px solid #e2e8f0; padding: 25px; display: flex; flex-direction: column; }
+        .pay-btn { border: 2px solid #f1f5f9; padding: 12px; border-radius: 10px; cursor: pointer; font-weight: 700; background: white; margin-bottom: 8px; width: 100%; text-align: center; }
         .pay-btn.active { border-color: var(--primary); background: #f0fff4; color: var(--primary); }
-        
-        .total-card { background: var(--sidebar); color: white; padding: 20px; border-radius: 18px; margin-top: auto; margin-bottom: 15px; }
-        .btn-complete { width: 100%; background: var(--primary); color: white; border: none; padding: 18px; border-radius: 15px; font-size: 18px; font-weight: 800; cursor: pointer; transition: 0.2s; }
-        .btn-complete:hover { filter: brightness(1.1); transform: translateY(-2px); }
+        .total-card { background: var(--sidebar); color: white; padding: 20px; border-radius: 15px; margin-top: auto; }
 
-        /* Print Receipt */
+        /* Print Style */
         #print-receipt { display: none; }
         @media print {
             body * { visibility: hidden; }
             #print-receipt, #print-receipt * { visibility: visible; }
-            #print-receipt { display: block; position: absolute; left: 0; top: 0; width: 58mm; padding: 2mm; font-size: 10px; line-height: 1.4; color: black; }
-            .r-line { border-top: 1px dashed #000; margin: 4px 0; }
+            #print-receipt { display: block; position: absolute; left: 0; top: 0; width: 58mm; padding: 2mm; font-size: 10px; }
         }
     </style>
 </head>
 <body>
 
 <nav class="sidebar">
-    <div class="logo"><span>⚡</span> mPOS</div>
-    <a href="index.html" class="nav-item">📊 <span>Dashboard</span></a> 
-    <a href="pos-checkout.html" class="nav-item active">🛒 <span>Checkout</span></a>
-    <a href="pos-orders.html" class="nav-item">📄 <span>Orders</span></a>
-    <a href="pos-customers.html" class="nav-item">👥 <span>Customers</span></a>
-    <a href="pos-inventory.html" class="nav-item">📦 <span>Inventory</span></a>
-    <a href="pos-daily-summary.html" class="nav-item">📜 <span>Closing</span></a>
-    
-    <div style="margin-top: auto; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.1);">
-        <div id="display-user-name" style="font-size: 12px; color: #fff; font-weight: 600; margin-bottom: 10px;">User</div>
-        <button onclick="handleLogout()" style="background:none; border:none; color:#f87171; cursor:pointer; font-size:12px; padding:0;">🚪 Log Out</button>
-    </div>
+    <div class="logo">⚡ mPOS</div>
+    <a href="index.html" class="nav-item">📊 Dashboard</a> 
+    <a href="pos-checkout.html" class="nav-item active">🛒 Checkout</a>
+    <a href="pos-orders.html" class="nav-item">📄 Orders</a>
+    <div id="display-user-name" style="margin-top:auto; font-size:11px; opacity:0.7;">User</div>
 </nav>
 
 <section class="cart-section">
-    <div class="top-bar">
-        <div style="font-weight:800; font-size:22px;">ລາຍການສິນຄ້າ (Cart)</div>
-        <input type="text" id="manual-input" class="search-box" placeholder="Scan Barcode ທີ່ນີ້..." autofocus>
+    <div style="display:flex; justify-content:space-between; margin-bottom:20px;">
+        <h2 style="margin:0">ລາຍການສິນຄ້າ</h2>
+        <input type="text" id="manual-input" placeholder="Scan Barcode..." style="padding:8px; border-radius:8px; border:1px solid #ddd;" autofocus>
     </div>
-    
     <table class="cart-table">
         <thead>
-            <tr>
-                <th style="width: 45%;">ສິນຄ້າ</th>
-                <th style="text-align:right">ລາຄາ</th>
-                <th style="text-align:center">ຈຳນວນ</th>
-                <th style="text-align:right">ລວມ</th>
-                <th></th>
-            </tr>
+            <tr><th>ສິນຄ້າ</th><th style="text-align:right">ລາຄາ</th><th style="text-align:center">ຈຳນວນ</th><th style="text-align:right">ລວມ</th><th></th></tr>
         </thead>
-        <tbody id="cart-body">
-            </tbody>
+        <tbody id="cart-body"></tbody>
     </table>
 </section>
 
 <section class="summary-section">
-    <h2 style="margin:0; font-size:18px;">ການຊຳລະ & ສະມາຊິກ</h2>
-
-    <div class="loyalty-box">
-        <div style="font-size:12px; font-weight:800; color:#065f46;">👥 ຄົ້ນຫາເບີໂທສະມາຊິກ</div>
-        <input type="text" id="cust-search" class="loyalty-input" placeholder="020..." onkeyup="searchCustomer()">
-        <div id="cust-info" style="margin-top:12px; font-size:13px; display:none; border-top: 1px solid #bbf7d0; padding-top:8px;">
-            <b id="res-name" style="color:#065f46; font-size:14px;">---</b> <br>
-            <span style="color:#10b981; font-weight:700;">ຄະແນນ: <span id="res-points">0</span> ⭐</span>
-        </div>
-    </div>
-
-    <div class="payment-grid">
-        <button class="pay-btn active" onclick="setPay('Cash', this)">ເງິນສົດ</button>
-        <button class="pay-btn" onclick="setPay('QR Code', this)">QR Code</button>
-    </div>
-
+    <h3>ການຊຳລະເງິນ</h3>
+    <button class="pay-btn active" onclick="setPay('Cash', this)">ເງິນສົດ (Cash)</button>
+    <button class="pay-btn" onclick="setPay('QR Code', this)">QR Code</button>
+    
     <div class="total-card">
-        <div style="display:flex; justify-content:space-between; font-size:22px; font-weight:800;">
+        <div style="display:flex; justify-content:space-between; font-size:20px; font-weight:800;">
             <span>ລວມ</span><span id="grand-total">0 ₭</span>
         </div>
-        <div style="display:flex; justify-content:space-between; font-size:12px; margin-top:10px; opacity:0.8;">
-            <span>ຄະແນນທີ່ຈະໄດ້ຮັບ</span><span id="earned-points">+0 ⭐</span>
-        </div>
     </div>
-
-    <button class="btn-complete" onclick="finishOrder()">ສຳເລັດການຂາຍ</button>
+    <button onclick="finishOrder()" style="width:100%; background:var(--primary); color:white; border:none; padding:15px; border-radius:12px; margin-top:15px; font-weight:800; cursor:pointer;">ສຳເລັດການຂາຍ</button>
 </section>
 
 <div id="print-receipt">
-    <div style="text-align:center;">
-        <h3 style="margin:0;">RECEIPT</h3>
-        <p style="margin:2px 0;">mPOS System</p>
-    </div>
-    <div class="r-line"></div>
-    <div id="receipt-header"></div>
-    <div class="r-line"></div>
+    <div style="text-align:center;"><h3>RECEIPT</h3></div>
     <div id="receipt-items"></div>
-    <div class="r-line"></div>
-    <div id="receipt-totals" style="font-weight:bold;"></div>
-    <div id="receipt-loyalty" style="font-size:9px; margin-top:5px;"></div>
-    <div class="r-line"></div>
-    <div style="text-align:center;">
-        <svg id="receipt-barcode"></svg>
-        <p>Thank You!</p>
-    </div>
+    <div id="receipt-totals" style="border-top:1px dashed #000; padding-top:5px; font-weight:bold;"></div>
 </div>
 
 <script>
@@ -174,127 +102,90 @@
 
     let cart = [];
     let payMethod = "Cash";
-    let selectedCustomer = null;
-    const formatLAK = (n) => new Intl.NumberFormat('lo-LA').format(n) + " ₭";
+    const DISPLAY_ID = "00000000-0000-0000-0000-000000000001";
 
-    // 1. ຄົ້ນຫາລູກຄ້າ
-    async function searchCustomer() {
-        const phone = document.getElementById('cust-search').value.trim();
-        if (phone.length < 5) {
-            document.getElementById('cust-info').style.display = 'none';
-            selectedCustomer = null;
-            return;
+    // 1. ຟັງຊັນ Sync ຂໍ້ມູນໄປທີ່ Customer View (ແກ້ໄຂໃຫ້ສົ່ງ items ໄປດ້ວຍ)
+    async function syncToCustomerDisplay(qrString = "") {
+        const total = cart.reduce((s, i) => s + (i.retail_price * i.qty), 0);
+        await _s.from('customer_display').upsert([{ 
+            id: DISPLAY_ID, 
+            amount: total, 
+            qr_string: qrString, 
+            status: 'PENDING',
+            items: cart // ສົ່ງລາຍການໃນກະຕ່າໄປໃຫ້ຝັ່ງລູກຄ້າເຫັນ
+        }]);
+    }
+
+    function crc16(data) {
+        let crc = 0xFFFF;
+        for (let i = 0; i < data.length; i++) {
+            let x = ((crc >> 8) ^ data.charCodeAt(i)) & 0xFF;
+            x ^= x >> 4;
+            crc = ((crc << 8) ^ (x << 12) ^ (x << 5) ^ x) & 0xFFFF;
         }
-        const { data } = await _s.from('pos_customers').select('*').eq('phone', phone).maybeSingle();
-        if (data) {
-            selectedCustomer = data;
-            document.getElementById('cust-info').style.display = 'block';
-            document.getElementById('res-name').innerText = "👤 " + data.name;
-            document.getElementById('res-points').innerText = data.points.toLocaleString();
+        return crc.toString(16).toUpperCase().padStart(4, '0');
+    }
+
+    async function updateQR() {
+        const sum = cart.reduce((s, i) => s + (i.retail_price * i.qty), 0);
+        if (payMethod === 'QR Code' && sum > 0) {
+            const amountStr = Math.round(sum).toString();
+            let payload = "00020101021138670016A00526628466257701082771041802030010324QDZNRPLTFVYIIIOJNUCUZYGC5303418";
+            payload += "54" + amountStr.length.toString().padStart(2, '0') + amountStr; 
+            payload += "5802LA6304";
+            const finalQR = payload + crc16(payload);
+            await syncToCustomerDisplay(finalQR);
         } else {
-            selectedCustomer = null;
-            document.getElementById('cust-info').style.display = 'none';
+            await syncToCustomerDisplay(""); // ຖ້າຈ່າຍເງິນສົດ ໃຫ້ລຶບ QR ອອກແຕ່ຍັງສະແດງ Items
         }
     }
 
-    // 2. Scan / Lookup Item
-    document.getElementById('manual-input').addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') { lookupItem(e.target.value); e.target.value = ""; }
-    });
-
-    async function lookupItem(code) {
-        const { data } = await _s.from('pos_products').select('*').eq('barcode', code.trim()).maybeSingle();
-        if (data) {
-            const exists = cart.find(i => i.barcode === data.barcode);
-            if (exists) exists.qty++; else cart.push({ ...data, qty: 1 });
-            drawCart();
-        } else alert("ບໍ່ພົບສິນຄ້າ!");
+    function setPay(m, b) {
+        payMethod = m;
+        document.querySelectorAll('.pay-btn').forEach(x => x.classList.remove('active'));
+        b.classList.add('active');
+        updateQR();
     }
+
+    document.getElementById('manual-input').addEventListener('keypress', async (e) => {
+        if (e.key === 'Enter') {
+            const { data } = await _s.from('pos_products').select('*').eq('barcode', e.target.value.trim()).maybeSingle();
+            if (data) {
+                const exists = cart.find(i => i.barcode === data.barcode);
+                if (exists) exists.qty++; else cart.push({ ...data, qty: 1 });
+                drawCart();
+                updateQR();
+            }
+            e.target.value = "";
+        }
+    });
 
     function drawCart() {
         const body = document.getElementById('cart-body');
-        if (cart.length === 0) {
-            body.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:60px; color:#94a3b8;">ບໍ່ມີສິນຄ້າໃນກະຕ່າ</td></tr>';
-            updateTotals(0);
-            return;
-        }
         body.innerHTML = cart.map((item, idx) => `
             <tr>
-                <td><div class="item-name">${item.name}</div><div style="font-size:11px; color:#94a3b8;">${item.barcode}</div></td>
-                <td style="text-align:right; font-weight:600;">${formatLAK(item.retail_price)}</td>
-                <td style="text-align:center;">
-                    <div style="display:flex; align-items:center; justify-content:center; gap:12px;">
-                        <button onclick="adjQty(${idx}, -1)" style="width:28px; height:28px; border:1px solid #e2e8f0; background:white; border-radius:6px; cursor:pointer;">-</button>
-                        <span style="font-weight:800; min-width:20px;">${item.qty}</span>
-                        <button onclick="adjQty(${idx}, 1)" style="width:28px; height:28px; border:1px solid #e2e8f0; background:white; border-radius:6px; cursor:pointer;">+</button>
-                    </div>
-                </td>
-                <td style="text-align:right; font-weight:800; color:var(--primary);">${formatLAK(item.retail_price * item.qty)}</td>
-                <td style="text-align:right;"><button onclick="remItem(${idx})" style="color:#ef4444; border:none; background:none; cursor:pointer; font-size:16px;">✕</button></td>
+                <td><b>${item.name}</b></td>
+                <td style="text-align:right">${item.retail_price.toLocaleString()}</td>
+                <td style="text-align:center">${item.qty}</td>
+                <td style="text-align:right"><b>${(item.retail_price * item.qty).toLocaleString()}</b></td>
+                <td><button onclick="cart.splice(${idx},1); drawCart(); updateQR();">✕</button></td>
             </tr>`).join('');
-        
-        const total = cart.reduce((s, i) => s + (i.retail_price * i.qty), 0);
-        updateTotals(total);
+        document.getElementById('grand-total').innerText = cart.reduce((s, i) => s + (i.retail_price * i.qty), 0).toLocaleString() + " ₭";
     }
 
-    function updateTotals(total) {
-        document.getElementById('grand-total').innerText = formatLAK(total);
-        const points = Math.floor(total / 10000);
-        document.getElementById('earned-points').innerText = `+${points.toLocaleString()} ⭐`;
-    }
-
-    function adjQty(idx, n) { cart[idx].qty += n; if (cart[idx].qty <= 0) cart.splice(idx, 1); drawCart(); }
-    function remItem(idx) { cart.splice(idx, 1); drawCart(); }
-    function setPay(m, b) { payMethod = m; document.querySelectorAll('.pay-btn').forEach(x => x.classList.remove('active')); b.classList.add('active'); }
-
-    // 3. Checkout & Points
     async function finishOrder() {
         if (cart.length === 0) return;
         const total = cart.reduce((s, i) => s + (i.retail_price * i.qty), 0);
-        const earned = Math.floor(total / 10000);
-
-        const { data, error } = await _s.from('pos_sales').insert([{ 
-            items: cart, total_amount: total, payment_method: payMethod, customer_phone: selectedCustomer ? selectedCustomer.phone : null 
-        }]).select();
-
-        if (error) return alert(error.message);
-
-        if (selectedCustomer) {
-            await _s.from('pos_customers').update({ 
-                points: selectedCustomer.points + earned, 
-                total_spent: parseFloat(selectedCustomer.total_spent) + total 
-            }).eq('phone', selectedCustomer.phone);
-        }
-
-        printReceipt(data[0], total, earned);
-    }
-
-    function printReceipt(order, total, earned) {
-        const shortID = order.id.substring(0, 8).toUpperCase();
-        document.getElementById('receipt-header').innerHTML = `ID: #${shortID}<br>Date: ${new Date().toLocaleString()}`;
-        document.getElementById('receipt-items').innerHTML = cart.map(i => `
-            <div style="display:flex; justify-content:space-between;"><span>${i.name} x${i.qty}</span><span>${(i.retail_price * i.qty).toLocaleString()}</span></div>
-        `).join('');
-        document.getElementById('receipt-totals').innerHTML = `<div style="display:flex; justify-content:space-between; font-size:12px; margin-top:5px;"><span>TOTAL</span><span>${total.toLocaleString()} LAK</span></div>`;
+        await _s.from('pos_sales').insert([{ items: cart, total_amount: total, payment_method: payMethod }]);
         
-        if (selectedCustomer) {
-            document.getElementById('receipt-loyalty').innerHTML = `Customer: ${selectedCustomer.name}<br>Earned: +${earned} | Total: ${selectedCustomer.points + earned} ⭐`;
-        }
+        // ເຄຼຍໜ້າຈໍລູກຄ້າ
+        await _s.from('customer_display').update({ status: 'PAID', qr_string: "", items: [] }).eq('id', DISPLAY_ID);
         
-        JsBarcode("#receipt-barcode", shortID, { format: "CODE128", width: 1.5, height: 40, displayValue: false });
-        
-        setTimeout(() => { window.print(); location.reload(); }, 500);
+        alert("ການຂາຍສຳເລັດ!");
+        cart = [];
+        drawCart();
+        updateQR();
     }
-
-    function initializeUser() {
-        const name = localStorage.getItem('lsm_user_name');
-        if (!name) window.location.href = 'login.html';
-        document.getElementById('display-user-name').innerText = "👤 " + name;
-    }
-
-    function handleLogout() { localStorage.clear(); window.location.href = 'login.html'; }
-
-    document.addEventListener('DOMContentLoaded', () => { initializeUser(); drawCart(); });
 </script>
 </body>
 </html>
