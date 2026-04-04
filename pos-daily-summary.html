@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="lo">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LSM POS | Daily Register Summary</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Phetsarath&family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
+    
+    <style>
+        :root { 
+            --primary: #10b981; --sidebar: #0f172a; --bg: #f8fafc; 
+            --danger: #ef4444; --text: #1e293b; --lao: 'Phetsarath', sans-serif;
+        }
+        * { box-sizing: border-box; font-family: 'Plus Jakarta Sans', var(--lao); }
+        body { margin: 0; display: flex; background: var(--bg); height: 100vh; overflow: hidden; }
+
+        /* Sidebar Navigation */
+        .sidebar { width: 260px; background: var(--sidebar); color: white; padding: 30px 20px; display: flex; flex-direction: column; }
+        .logo { font-weight: 800; font-size: 22px; color: var(--primary); margin-bottom: 40px; display: flex; align-items: center; gap: 10px; }
+        .nav-item { padding: 14px 18px; border-radius: 12px; color: #94a3b8; text-decoration: none; display: flex; align-items: center; gap: 12px; margin-bottom: 8px; font-weight: 600; font-size: 14px; }
+        .nav-item:hover { background: rgba(255,255,255,0.05); color: white; }
+        .nav-active { background: var(--primary); color: white; }
+
+        /* Main Content */
+        .main { flex: 1; padding: 40px; overflow-y: auto; }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
+
+        /* Table Style */
+        .card { background: white; border-radius: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.02); overflow: hidden; border: 1px solid #f1f5f9; }
+        table { width: 100%; border-collapse: collapse; }
+        th { background: #f8fafc; padding: 15px; text-align: left; font-size: 11px; color: #64748b; text-transform: uppercase; letter-spacing: 1px; }
+        td { padding: 16px; border-bottom: 1px solid #f1f5f9; font-size: 14px; color: var(--text); }
+        
+        /* Status Badges */
+        .badge { padding: 5px 12px; border-radius: 20px; font-size: 11px; font-weight: 800; }
+        .badge-match { background: #ecfdf5; color: #059669; }
+        .badge-miss { background: #fef2f2; color: #ef4444; }
+
+        .btn-print { background: #334155; color: white; border: none; padding: 8px 16px; border-radius: 10px; cursor: pointer; font-weight: 700; transition: 0.2s; }
+        .btn-print:hover { background: var(--sidebar); transform: translateY(-2px); }
+
+        /* Print Formatting for 80mm Thermal Printer */
+        @media print {
+            body * { visibility: hidden; }
+            #thermal-receipt, #thermal-receipt * { visibility: visible; }
+            #thermal-receipt { position: absolute; left: 0; top: 0; width: 80mm; padding: 5px; color: black !important; }
+            .no-print { display: none; }
+        }
+    </style>
+</head>
+<body>
+
+<nav class="sidebar">
+    <div class="logo"><span>⚡</span> mPOS</div>
+    <a href="index.html" class="nav-item">📊 ແຜງຄວບຄຸມ</a> 
+    <a href="pos-daily-summary.html" class="nav-item nav-active">📜 ປະຫວັດປິດຍອດ</a>
+    <a href="pos-reports.html" class="nav-item">📊 ບົດລາຍງານສິນຄ້າ</a>
+    
+    <div style="margin-top: auto; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.1);">
+        <button onclick="location.href='index.html'" style="background:none; border:1px solid #94a3b8; color:#94a3b8; width:100%; padding:10px; border-radius:8px; cursor:pointer;">⬅️ ກັບຄືນ</button>
+    </div>
+</nav>
+
+<main class="main">
+    <div class="header">
+        <h1 style="margin:0; font-family: var(--lao);">ປະຫວັດການປິດຍອດ (Daily Closing)</h1>
+        <button onclick="fetchSummaryData()" class="btn-print" style="background: white; color: var(--sidebar); border: 1px solid #e2e8f0;">🔄 ໂຫຼດຂໍ້ມູນໃໝ່</button>
+    </div>
+
+    <div class="card">
+        <table>
+            <thead>
+                <tr>
+                    <th>ວັນທີ</th>
+                    <th>ຍອດຂາຍ (System)</th>
+                    <th>ເງິນສົດຕົວຈິງ</th>
+                    <th>ເງິນໂອນຕົວຈິງ</th>
+                    <th>ສ່ວນຕ່າງ</th>
+                    <th>ຜູ້ປິດຍອດ</th>
+                    <th>ພິມ</th>
+                </tr>
+            </thead>
+            <tbody id="summary-table-body">
+                </tbody>
+        </table>
+    </div>
+</main>
+
+<div id="thermal-receipt" style="display: none; font-family: 'Courier New', Courier, monospace;">
+    <div style="text-align: center; border-bottom: 1px dashed black; padding-bottom: 10px;">
+        <h2 style="margin: 5px 0;">DAILY SUMMARY</h2>
+        <p id="rt-date" style="margin: 0;"></p>
+    </div>
+    <div style="padding: 10px 0; font-size: 14px;">
+        <p>Total Bills: <span id="rt-count" style="float: right;"></span></p>
+        <p>System Total: <span id="rt-sys" style="float: right;"></span></p>
+        <div style="border-top: 1px solid #eee; margin: 10px 0;"></div>
+        <p><b>Actual Cash:</b> <span id="rt-cash" style="float: right;"></span></p>
+        <p><b>Actual Trans:</b> <span id="rt-trans" style="float: right;"></span></p>
+        <p style="border-top: 1px dashed black; padding-top: 10px;">
+            <b>VARIANCE:</b> <span id="rt-diff" style="float: right;"></span>
+        </p>
+    </div>
+    <div style="text-align: center; margin-top: 20px; font-size: 12px; border-top: 1px solid black; padding-top: 5px;">
+        User: <span id="rt-user"></span><br>
+        LSM POS System
+    </div>
+</div>
+
+<script>
+    const u = "https://zddelixvencundnkccpq.supabase.co"; 
+    const k = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpkZGVsaXh2ZW5jdW5kbmtjY3BxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUxMjQ1MzMsImV4cCI6MjA5MDcwMDUzM30.-RPvOYMLzftubrpJ4KSVrqL2eNaopjty30_TrnkGpBo";
+    const _s = supabase.createClient(u, k);
+
+    const formatLAK = (v) => new Intl.NumberFormat('lo-LA').format(v) + " ₭";
+
+    async function fetchSummaryData() {
+        const { data, error } = await _s.from('daily_reports')
+            .select('*')
+            .order('report_date', { ascending: false });
+
+        if (error) return console.error(error);
+
+        const tbody = document.getElementById('summary-table-body');
+        tbody.innerHTML = data.map(r => {
+            const isMatch = r.variance === 0;
+            return `
+                <tr>
+                    <td style="font-weight:800;">${r.report_date}</td>
+                    <td>${formatLAK(r.system_total_amount)}</td>
+                    <td>${formatLAK(r.actual_cash_amount)}</td>
+                    <td>${formatLAK(r.actual_transfer_amount)}</td>
+                    <td>
+                        <span class="badge ${isMatch ? 'badge-match' : 'badge-miss'}">
+                            ${r.variance > 0 ? '+' : ''}${formatLAK(r.variance)}
+                        </span>
+                    </td>
+                    <td>${r.closed_by}</td>
+                    <td>
+                        <button class="btn-print" onclick='printThermal(${JSON.stringify(r)})'>🖨️ ພິມ</button>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+    }
+
+    function printThermal(r) {
+        // Fill receipt values
+        document.getElementById('rt-date').innerText = r.report_date;
+        document.getElementById('rt-count').innerText = r.total_orders_count;
+        document.getElementById('rt-sys').innerText = formatLAK(r.system_total_amount);
+        document.getElementById('rt-cash').innerText = formatLAK(r.actual_cash_amount);
+        document.getElementById('rt-trans').innerText = formatLAK(r.actual_transfer_amount);
+        document.getElementById('rt-diff').innerText = formatLAK(r.variance);
+        document.getElementById('rt-user').innerText = r.closed_by;
+
+        const receipt = document.getElementById('thermal-receipt');
+        receipt.style.display = 'block';
+        window.print();
+        receipt.style.display = 'none';
+    }
+
+    document.addEventListener('DOMContentLoaded', fetchSummaryData);
+</script>
+</body>
+</html>
