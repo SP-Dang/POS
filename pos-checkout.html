@@ -166,6 +166,7 @@
 </div>
 
 <script>
+    // 1. ຕັ້ງຄ່າ Supabase (ໃສ່ບ່ອນເກົ່າທີ່ລຶບອອກ)
     const u = "https://zddelixvencundnkccpq.supabase.co"; 
     const k = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpkZGVsaXh2ZW5jdW5kbmtjY3BxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUxMjQ1MzMsImV4cCI6MjA5MDcwMDUzM30.-RPvOYMLzftubrpJ4KSVrqL2eNaopjty30_TrnkGpBo";
     const _s = supabase.createClient(u, k);
@@ -174,6 +175,18 @@
     let payMethod = "ເງິນສົດ (Cash)";
     const formatLAK = (n) => new Intl.NumberFormat('lo-LA', { style: 'currency', currency: 'LAK', maximumFractionDigits: 0 }).format(n);
 
+    // 2. ຟັງຊັນໃໝ່ທີ່ເພີ່ມເຂົ້າມາ (ສຳຄັນຫຼາຍ)
+    async function updateCustomerDisplay(data) {
+        await _s.from('customer_display').upsert([{ 
+            id: 1, 
+            amount: data.amount, 
+            qr_string: data.qr_string || "", 
+            status: data.status || 'PENDING',
+            items: data.items || cart 
+        }]);
+    }
+
+    // 3. ຟັງຊັນຄິດໄລ່ CRC16 (ເອົາໄວ້ບ່ອນເກົ່າ)
     function crc16(data) {
         let crc = 0xFFFF;
         for (let i = 0; i < data.length; i++) {
@@ -182,6 +195,32 @@
             crc = ((crc << 8) ^ (x << 12) ^ (x << 5) ^ x) & 0xFFFF;
         }
         return crc.toString(16).toUpperCase().padStart(4, '0');
+    }
+
+    // 4. ຟັງຊັນ Sync ທີ່ປັບປຸງໃໝ່
+    async function syncIfQR() {
+        const sum = cart.reduce((s, i) => s + (i.retail_price * i.qty), 0);
+        
+        if (payMethod === 'QR Code' && sum > 0) {
+            const amountStr = Math.round(sum).toString();
+            let payload = "00020101021138670016A00526628466257701082771041802030010324QDZNRPLTFVYIIIOJNUCUZYGC5303418";
+            payload += "54" + amountStr.length.toString().padStart(2, '0') + amountStr; 
+            payload += "5802LA6304";
+            const finalQR = payload + crc16(payload);
+            
+            await updateCustomerDisplay({ amount: sum, qr_string: finalQR });
+        } else {
+            // ບ່ອນນີ້ລະທີ່ຈະເຮັດໃຫ້ QR ຫາຍໄປທັນທີເມື່ອປ່ຽນເປັນ Cash
+            await updateCustomerDisplay({ amount: sum, qr_string: "" });
+        }
+    }
+
+    // 5. ຟັງຊັນ setPay ທີ່ເອີ້ນ sync ທັນທີ
+    function setPay(m, b) { 
+        payMethod = m; 
+        document.querySelectorAll('.pay-btn').forEach(x => x.classList.remove('active')); 
+        b.classList.add('active'); 
+        syncIfQR(); 
     }
 
     async function sendQRToCustomer(total) {
@@ -290,20 +329,28 @@
         syncIfQR();
     }
 
-    async function finishOrder() {
+async function finishOrder() {
         if (cart.length === 0) return;
         const total = cart.reduce((s, i) => s + (i.retail_price * i.qty), 0);
         
-        const { data, error } = await _s.from('pos_sales').insert([{ items: cart, total_amount: total, payment_method: payMethod }]).select();
+        // 1. ບັນທຶກການຂາຍລົງໃນ Table pos_sales
+        const { data, error } = await _s.from('pos_sales').insert([{ 
+            items: cart, 
+            total_amount: total, 
+            payment_method: payMethod 
+        }]).select();
+        
         if (error) return alert("Error: " + error.message);
 
-        await _s.from('customer_display').insert([{ 
+        // 2. ສົ່ງສັນຍານ 'PAID' ໄປຫາໜ້າຈໍລູກຄ້າ (ໃຊ້ upsert ເພື່ອໃຫ້ Realtime ເຮັດວຽກໄວ)
+        await updateCustomerDisplay({ 
             amount: total, 
             qr_string: "", 
-            status: 'PAID',
+            status: 'PAID', 
             items: [] 
-        }]);
+        });
 
+        // 3. ກຽມຂໍ້ມູນສຳລັບພິມບິນ
         const shortID = data[0].id.substring(0, 8).toUpperCase();
         const timeStr = new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
 
@@ -313,7 +360,6 @@
                 ວັນທີ: ${new Date().toLocaleDateString('lo-LA')} | ເວລາ: ${timeStr}
             </div>`;
         
-        // ປັບປຸງສ່ວນການສະແດງຜົນສິນຄ້າໃນບິນ (Auto-wrap & Font 10px)
         document.getElementById('receipt-items').innerHTML = cart.map(i => `
             <div class="receipt-row">
                 <span class="r-item-name">${i.name} x${i.qty}</span>
@@ -327,14 +373,24 @@
             </div>
             <div class="receipt-text-sm">ການຊຳລະ: ${payMethod}</div>`;
 
-        JsBarcode("#receipt-barcode", shortID, { format: "CODE128", width: 1.2, height: 35, displayValue: false, margin: 0 });
+        // ສ້າງ Barcode ໃນບິນ
+        JsBarcode("#receipt-barcode", shortID, { 
+            format: "CODE128", 
+            width: 1.2, 
+            height: 35, 
+            displayValue: false, 
+            margin: 0 
+        });
 
+        // 4. ສັ່ງພິມ ແລະ Reset ກະຕ່າ
         setTimeout(() => {
             window.print();
             cart = []; 
             drawCart();
+            syncIfQR(); // ລຶບຂໍ້ມູນໜ້າຈໍລູກຄ້າໃຫ້ເປັນບັດວ່າງ
         }, 500);
     }
+
 
     document.addEventListener('DOMContentLoaded', () => {
         initializeUser();
