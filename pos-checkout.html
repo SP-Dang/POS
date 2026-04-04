@@ -38,7 +38,7 @@
         .item-name { font-size: 14px; font-weight: 700; max-width: 160px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-family: var(--lao-font); }
         .item-price, .item-total { font-size: 13px; font-weight: 600; text-align: right; }
 
-        /* Right Summary */
+        /* Summary Section */
         .summary-section { background: white; border-left: 1px solid #e2e8f0; padding: 40px; display: flex; flex-direction: column; }
         .payment-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 20px 0; }
         .pay-btn { border: 2px solid #f1f5f9; padding: 15px; border-radius: 12px; cursor: pointer; text-align: center; font-weight: 700; background: white; font-family: var(--lao-font); font-size: 15px; }
@@ -46,7 +46,7 @@
         .total-card { background: var(--sidebar); color: white; padding: 25px; border-radius: 20px; margin-top: auto; margin-bottom: 20px; }
         .btn-complete { width: 100%; background: var(--primary); color: white; border: none; padding: 20px; border-radius: 16px; font-size: 18px; font-weight: 800; cursor: pointer; transition: 0.3s; font-family: var(--lao-font); }
 
-        /* Receipt Print */
+        /* Print Style */
         #print-receipt { display: none; }
         @media print {
             body * { visibility: hidden; }
@@ -145,7 +145,7 @@
     let payMethod = "ເງິນສົດ (Cash)";
     const formatLAK = (n) => new Intl.NumberFormat('lo-LA', { style: 'currency', currency: 'LAK', maximumFractionDigits: 0 }).format(n);
 
-    // --- NEW QR FUNCTIONS ---
+    // --- QR GENERATION & SYNC LOGIC ---
     function crc16(data) {
         let crc = 0xFFFF;
         for (let i = 0; i < data.length; i++) {
@@ -157,9 +157,8 @@
     }
 
     async function sendQRToCustomer(total) {
-        if (total <= 0) return;
+        // ສົ່ງລາຍການ Cart ແລະ ຍອດເງິນ ໄປຫາ Supabase
         const amountStr = Math.round(total).toString();
-        // Use your account Merchant ID payload
         let payload = "00020101021138670016A00526628466257701082771041802030010324QDZNRPLTFVYIIIOJNUCUZYGC5303418";
         payload += "54" + amountStr.length.toString().padStart(2, '0') + amountStr; 
         payload += "5802LA6304";
@@ -168,11 +167,12 @@
         await _s.from('customer_display').insert([{ 
             amount: total, 
             qr_string: finalQR,
-            status: 'PENDING' 
+            status: 'PENDING',
+            items: cart // ສົ່ງລາຍການສິນຄ້າໄປນຳ
         }]);
     }
-    // -----------------------
 
+    // --- CORE POS LOGIC ---
     function initializeUser() {
         const name = localStorage.getItem('lsm_user_name');
         const role = localStorage.getItem('lsm_role');
@@ -203,11 +203,7 @@
         const exists = cart.find(i => i.barcode === p.barcode);
         if (exists) exists.qty++; else cart.push({ ...p, qty: 1 });
         drawCart();
-        // Sync to display if QR is already selected
-        if (payMethod === 'QR Code') {
-            const currentTotal = cart.reduce((s, i) => s + (i.retail_price * i.qty), 0);
-            sendQRToCustomer(currentTotal);
-        }
+        syncIfQR();
     }
 
     function drawCart() {
@@ -217,13 +213,9 @@
             updateTotals(0); 
             return; 
         }
-
         body.innerHTML = cart.map((item, idx) => `
             <tr>
-                <td>
-                    <div class="item-name">${item.name}</div>
-                    <div style="font-size:10px; color:#94a3b8;">${item.barcode}</div>
-                </td>
+                <td><div class="item-name">${item.name}</div><div style="font-size:10px; color:#94a3b8;">${item.barcode}</div></td>
                 <td class="item-price">${formatLAK(item.retail_price)}</td>
                 <td style="text-align:center;">
                     <div style="display:flex; align-items:center; justify-content:center; gap:10px;">
@@ -233,56 +225,53 @@
                     </div>
                 </td>
                 <td class="item-total">${formatLAK(item.retail_price * item.qty)}</td>
-                <td style="text-align:right;">
-                    <button onclick="remItem(${idx})" style="border:none; background:none; cursor:pointer; color:#ef4444; font-size:16px;">✕</button>
-                </td>
-            </tr>
-        `).join('');
-
-        const sum = cart.reduce((s, i) => s + (i.retail_price * i.qty), 0);
-        updateTotals(sum);
+                <td style="text-align:right;"><button onclick="remItem(${idx})" style="border:none; background:none; cursor:pointer; color:#ef4444; font-size:16px;">✕</button></td>
+            </tr>`).join('');
+        updateTotals(cart.reduce((s, i) => s + (i.retail_price * i.qty), 0));
     }
 
     function adjQty(idx, amount) {
         cart[idx].qty += amount;
         if (cart[idx].qty <= 0) cart.splice(idx, 1);
         drawCart();
-        if (payMethod === 'QR Code') {
-            const sum = cart.reduce((s, i) => s + (i.retail_price * i.qty), 0);
-            sendQRToCustomer(sum);
-        }
+        syncIfQR();
     }
     
-    function remItem(idx) { 
-        cart.splice(idx, 1); 
-        drawCart(); 
+    function remItem(idx) { cart.splice(idx, 1); drawCart(); syncIfQR(); }
+    
+    function updateTotals(total) { document.getElementById('grand-total').innerText = formatLAK(total); }
+    
+    function syncIfQR() {
         if (payMethod === 'QR Code') {
             const sum = cart.reduce((s, i) => s + (i.retail_price * i.qty), 0);
             sendQRToCustomer(sum);
         }
     }
 
-    function updateTotals(total) { document.getElementById('grand-total').innerText = formatLAK(total); }
-    
     function setPay(m, b) { 
         payMethod = m; 
         document.querySelectorAll('.pay-btn').forEach(x => x.classList.remove('active')); 
         b.classList.add('active'); 
-        
-        // If clicking QR Code, trigger the display immediately
-        if (m === 'QR Code') {
-            const sum = cart.reduce((s, i) => s + (i.retail_price * i.qty), 0);
-            sendQRToCustomer(sum);
-        }
+        syncIfQR();
     }
 
     async function finishOrder() {
         if (cart.length === 0) return;
         const total = cart.reduce((s, i) => s + (i.retail_price * i.qty), 0);
         
+        // 1. ບັນທຶກລົງຖານຂໍ້ມູນ Sales
         const { data, error } = await _s.from('pos_sales').insert([{ items: cart, total_amount: total, payment_method: payMethod }]).select();
         if (error) return alert("Error: " + error.message);
 
+        // 2. ສົ່ງສະຖານະ PAID ໄປຫາຈໍລູກຄ້າ ເພື່ອປິດ QR ແລະ ຂຶ້ນ Thank You
+        await _s.from('customer_display').insert([{ 
+            amount: total, 
+            qr_string: "", 
+            status: 'PAID',
+            items: [] 
+        }]);
+
+        // 3. ການພິມບິນ
         const shortID = data[0].id.substring(0, 8).toUpperCase();
         const timeStr = new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
 
@@ -311,8 +300,6 @@
             window.print();
             cart = []; 
             drawCart();
-            // Clear customer display after printing
-            _s.from('customer_display').insert([{ amount: 0, qr_string: "", status: 'IDLE' }]);
         }, 500);
     }
 
