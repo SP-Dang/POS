@@ -18,7 +18,7 @@
 
         .main { flex: 1; padding: 25px; overflow-y: auto; }
         
-        /* Chart Layout */
+        /* Layouts */
         .chart-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px; }
         .chart-card { background: white; padding: 15px; border-radius: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.02); height: 220px; }
         
@@ -26,15 +26,14 @@
         .stat-card { background: white; padding: 15px; border-radius: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.02); display: flex; flex-direction: column; }
         
         table { width: 100%; border-collapse: collapse; background: white; border-radius: 12px; overflow: hidden; font-size: 13px; }
-        th { background: #f8fafc; padding: 10px; text-align: left; color: #64748b; font-size: 11px; text-transform: uppercase; }
-        td { padding: 10px; border-bottom: 1px solid #f1f5f9; }
+        th { background: #f8fafc; padding: 12px 10px; text-align: left; color: #64748b; font-size: 11px; text-transform: uppercase; border-bottom: 1px solid #f1f5f9; }
+        td { padding: 12px 10px; border-bottom: 1px solid #f1f5f9; }
         
-        .badge-refund { background: #fee2e2; color: #b91c1c; padding: 2px 6px; border-radius: 8px; font-size: 10px; }
+        .badge-refund { background: #fee2e2; color: #b91c1c; padding: 2px 6px; border-radius: 8px; font-size: 10px; font-weight: 800; }
+        .inv-no { font-family: 'Courier New', monospace; color: #64748b; font-weight: 800; font-size: 13px; }
         
-        /* ສະໄຕລ໌ສຳລັບ Table ນ້ອຍໃນ Card */
-        .low-stock-table { font-size: 11px; width: 100%; margin-top: 8px; border: none; }
+        .low-stock-table { font-size: 11px; width: 100%; margin-top: 8px; }
         .low-stock-table td { padding: 4px 0; border: none; }
-        .text-danger { color: var(--danger); font-weight: bold; }
     </style>
 </head>
 <body>
@@ -78,9 +77,7 @@
             </div>
             <div id="low-stock-list-container" style="overflow-y: auto; flex: 1;">
                 <table class="low-stock-table">
-                    <tbody id="low-stock-mini-list">
-                        <tr><td style="color:#94a3b8; text-align:center;">ກຳລັງກວດສອບ...</td></tr>
-                    </tbody>
+                    <tbody id="low-stock-mini-list"></tbody>
                 </table>
             </div>
         </div>
@@ -91,6 +88,7 @@
         <table>
             <thead>
                 <tr>
+                    <th style="width: 120px;">INV# (8 ຫຼັກ)</th>
                     <th>ວັນທີ/ເວລາ</th>
                     <th>ເບີໂທລູກຄ້າ</th>
                     <th>ການຊຳລະ</th>
@@ -124,42 +122,39 @@
                     netTotal += (Number(s.total_amount) || 0); 
                     discountTotal += (Number(s.discount_amount) || 0);
                 }
-                const date = new Date(s.created_at).toLocaleString('lo-LA', { hour:'2-digit', minute:'2-digit', day:'numeric', month:'short' });
+                
+                // ດຶງ 8 ຕົວເລກທ້າຍຂອງ ID ມາເຮັດເປັນ INV#
+                const invNo = s.id.toString().slice(-8).toUpperCase(); 
+                
+                const date = new Date(s.created_at).toLocaleString('lo-LA', { 
+                    day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' 
+                });
+
                 return `<tr>
+                    <td class="inv-no">#${invNo}</td>
                     <td>${date}</td>
                     <td>${s.customer_phone || '-'}</td>
                     <td><b>${s.payment_method}</b></td>
-                    <td>${isRef ? '<span class="badge-refund">ຄືນສິນຄ້າ</span>' : '<span style="color:var(--primary)">ສຳເລັດ</span>'}</td>
-                    <td style="text-align:right; font-weight:700; ${isRef ? 'text-decoration:line-through; color:#94a3b8;' : ''}">${fmt(s.total_amount)}</td>
+                    <td>${isRef ? '<span class="badge-refund">ຄືນສິນຄ້າ</span>' : '<span style="color:var(--primary); font-weight:bold;">ສຳເລັດ</span>'}</td>
+                    <td style="text-align:right; font-weight:800; ${isRef ? 'text-decoration:line-through; color:#94a3b8;' : ''}">${fmt(s.total_amount)}</td>
                 </tr>`;
             }).join('');
 
             document.getElementById('rev-net').innerText = '₭' + fmt(netTotal);
             document.getElementById('total-discount').innerText = '₭' + fmt(discountTotal);
 
-            // 2. Low Stock Check (ແກ້ໄຂຈຸດນີ້)
-            const { data: prods, error: pErr } = await _s.from('pos_products').select('name, stock_qty, min_stock');
-            if (!pErr && prods) {
-                // Filter ໂດຍໃຊ້ Number() ເພື່ອຄວາມຖືກຕ້ອງ
+            // 2. Low Stock Check
+            const { data: prods } = await _s.from('pos_products').select('name, stock_qty, min_stock');
+            if (prods) {
                 const lowItems = prods.filter(p => Number(p.stock_qty) <= Number(p.min_stock));
                 document.getElementById('low-stock-count').innerText = lowItems.length;
-
                 const miniList = document.getElementById('low-stock-mini-list');
-                if (lowItems.length > 0) {
-                    miniList.innerHTML = lowItems.slice(0, 5).map(p => `
-                        <tr>
-                            <td style="color:#334155;">${p.name}</td>
-                            <td class="text-danger" style="text-align:right;">${p.stock_qty}</td>
-                        </tr>
-                    `).join('');
-                } else {
-                    miniList.innerHTML = '<tr><td style="color:#10b981; text-align:center;">✅ ສິນຄ້າພໍທຸກລາຍການ</td></tr>';
-                }
+                miniList.innerHTML = lowItems.length > 0 ? lowItems.slice(0, 5).map(p => `
+                    <tr><td>${p.name}</td><td style="text-align:right; color:var(--danger); font-weight:800;">${p.stock_qty}</td></tr>
+                `).join('') : '<tr><td colspan="2" style="color:var(--primary); text-align:center;">✅ ສະຕັອກປົກກະຕິ</td></tr>';
             }
 
-            // 3. Render Charts
             updateCharts();
-
         } catch (e) { console.error(e); }
     }
 
@@ -197,7 +192,7 @@
 
     function handleLogout() { localStorage.clear(); window.location.href = 'login.html'; }
     document.addEventListener('DOMContentLoaded', () => {
-        document.getElementById('user-display').innerText = "User: " + localStorage.getItem('lsm_user_name');
+        document.getElementById('user-display').innerText = "User: " + (localStorage.getItem('lsm_user_name') || 'Admin');
         init();
     });
 </script>
