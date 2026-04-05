@@ -2,7 +2,7 @@
 <html lang="lo">
 <head>
     <meta charset="UTF-8">
-    <title>LSM POS | Compact Dashboard & Fixed Charts</title>
+    <title>LSM POS | Advanced Dashboard</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Phetsarath&family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
@@ -27,16 +27,24 @@
         .chart-grid { display: grid; grid-template-columns: 1.5fr 1fr; gap: 15px; margin-bottom: 20px; }
         .chart-card { background: white; padding: 15px; border-radius: 12px; height: 260px; position: relative; border: 1px solid #f1f5f9; }
 
-        /* Tables Area */
-        .table-container { display: grid; grid-template-columns: 1.2fr 0.9fr 0.9fr; gap: 15px; }
-        .card-white { background: white; border-radius: 12px; padding: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.02); border: 1px solid #f1f5f9; }
-        h3 { font-size: 13px; margin: 0 0 12px 0; display: flex; align-items: center; gap: 6px; color: #334155; }
+        /* Tables Area - New Layout (2/3 and 1/3) */
+        .table-container { 
+            display: grid; 
+            grid-template-columns: 2fr 1fr; 
+            gap: 15px; 
+            align-items: start;
+        }
+        .side-stack { display: flex; flex-direction: column; gap: 15px; }
 
-        table { width: 100%; border-collapse: collapse; font-size: 11px; }
-        th { background: #f8fafc; padding: 8px; text-align: left; color: #94a3b8; font-size: 9px; text-transform: uppercase; }
-        td { padding: 10px 8px; border-bottom: 1px solid #f1f5f9; }
+        .card-white { background: white; border-radius: 12px; padding: 18px; box-shadow: 0 2px 4px rgba(0,0,0,0.02); border: 1px solid #f1f5f9; }
+        h3 { font-size: 13px; margin: 0 0 15px 0; display: flex; align-items: center; gap: 8px; color: #334155; }
+
+        table { width: 100%; border-collapse: collapse; font-size: 11.5px; }
+        th { background: #f8fafc; padding: 10px 8px; text-align: left; color: #94a3b8; font-size: 9px; text-transform: uppercase; letter-spacing: 0.5px; }
+        td { padding: 12px 8px; border-bottom: 1px solid #f1f5f9; }
         
         .inv-no { font-family: 'Courier New', monospace; font-weight: 800; color: #1e293b; }
+        .badge { padding: 3px 8px; border-radius: 5px; font-size: 10px; font-weight: 700; background: #f1f5f9; color: #475569; }
     </style>
 </head>
 <body>
@@ -72,25 +80,36 @@
 
     <div class="table-container">
         <div class="card-white">
-            <h3><span>📄</span> ຂາຍລ້າສຸດ</h3>
+            <h3><span>📄</span> ຂາຍລ້າສຸດ (Latest Sales)</h3>
             <table>
-                <thead><tr><th>INV#</th><th style="text-align:right;">ຍອດ</th></tr></thead>
+                <thead>
+                    <tr>
+                        <th>INV#</th>
+                        <th>ວັນທີ / ເວລາ</th>
+                        <th>ຊ່ອງທາງການຈ່າຍ</th>
+                        <th style="text-align:right;">ຍອດລວມ</th>
+                    </tr>
+                </thead>
                 <tbody id="sales-list"></tbody>
             </table>
         </div>
-        <div class="card-white">
-            <h3 style="color:#3b82f6;"><span>🏆</span> VIP Top 5</h3>
-            <table>
-                <thead><tr><th>ຊື່</th><th style="text-align:right;">ຍອດຊື້</th></tr></thead>
-                <tbody id="customer-top-list"></tbody>
-            </table>
-        </div>
-        <div class="card-white">
-            <h3 style="color:var(--danger);"><span>↩️</span> Refunds</h3>
-            <table>
-                <thead><tr><th>INV#</th><th>ໂດຍໃຜ</th></tr></thead>
-                <tbody id="refund-list"></tbody>
-            </table>
+
+        <div class="side-stack">
+            <div class="card-white">
+                <h3 style="color:var(--danger);"><span>↩️</span> Refunds</h3>
+                <table>
+                    <thead><tr><th>INV#</th><th>ເບີໂທ</th></tr></thead>
+                    <tbody id="refund-list"></tbody>
+                </table>
+            </div>
+
+            <div class="card-white">
+                <h3 style="color:#3b82f6;"><span>🏆</span> VIP Top 5</h3>
+                <table>
+                    <thead><tr><th>ຊື່</th><th style="text-align:right;">ຍອດຊື້</th></tr></thead>
+                    <tbody id="customer-top-list"></tbody>
+                </table>
+            </div>
         </div>
     </div>
 </main>
@@ -104,12 +123,10 @@
 
     async function init() {
         try {
-            // 1. Fetch Data
             const { data: allSales } = await _s.from('pos_sales').select('*').order('created_at', { ascending: false });
             const { data: custs } = await _s.from('pos_customers').select('*').order('total_spent', { ascending: false });
             const { data: prods } = await _s.from('pos_products').select('stock_qty, min_stock');
 
-            // Stats
             let netTotal = 0, discTotal = 0;
             const completed = allSales.filter(s => s.status !== 'Refunded');
             const refunded = allSales.filter(s => s.status === 'Refunded');
@@ -124,20 +141,24 @@
             document.getElementById('customer-count').innerText = custs ? custs.length : 0;
             document.getElementById('low-stock-count').innerText = prods ? prods.filter(p => Number(p.stock_qty) <= Number(p.min_stock)).length : 0;
 
-            // Render Tables
-            document.getElementById('sales-list').innerHTML = completed.slice(0, 6).map(s => `
-                <tr><td class="inv-no">#${s.id.substring(0,8).toUpperCase()}</td><td style="text-align:right; font-weight:700;">${fmt(s.total_amount)}</td></tr>
+            // Render Tables - Enhanced for the 2/3 layout
+            document.getElementById('sales-list').innerHTML = completed.slice(0, 10).map(s => `
+                <tr>
+                    <td class="inv-no">#${s.id.substring(0,8).toUpperCase()}</td>
+                    <td style="color:#64748b;">${new Date(s.created_at).toLocaleString('lo-LA', {hour12:false})}</td>
+                    <td><span class="badge">${s.payment_method}</span></td>
+                    <td style="text-align:right; font-weight:800; color:var(--primary);">${fmt(s.total_amount)}</td>
+                </tr>
             `).join('');
 
             document.getElementById('customer-top-list').innerHTML = custs.slice(0, 5).map(c => `
-                <tr><td><b>${c.name}</b></td><td style="text-align:right; color:var(--primary);">${fmt(c.total_spent)}</td></tr>
+                <tr><td><b>${c.name}</b></td><td style="text-align:right; color:var(--primary); font-weight:700;">${fmt(c.total_spent)}</td></tr>
             `).join('');
 
             document.getElementById('refund-list').innerHTML = refunded.slice(0, 5).map(s => `
                 <tr><td class="inv-no" style="color:var(--danger)">#${s.id.substring(0,8).toUpperCase()}</td><td>${s.customer_phone || 'ທົ່ວໄປ'}</td></tr>
-            `).join('') || '<tr><td colspan="2" style="text-align:center;">ບໍ່ມີ</td></tr>';
+            `).join('') || '<tr><td colspan="2" style="text-align:center; color:#94a3b8;">ບໍ່ມີລາຍການ</td></tr>';
 
-            // 2. Call Charts
             await renderSalesChart();
             await renderTopChart();
 
@@ -147,11 +168,9 @@
     async function renderSalesChart() {
         const { data: trend } = await _s.rpc('get_sales_by_payment_7days');
         if (!trend) return;
-
         const labels = [...new Set(trend.map(t => t.sale_date.split('-').slice(1).join('/')))];
         const qrData = labels.map(l => trend.find(t => t.sale_date.includes(l.replace('/','-')) && t.payment_method === 'QR Code')?.total_amount || 0);
         const cashData = labels.map(l => trend.find(t => t.sale_date.includes(l.replace('/','-')) && t.payment_method === 'Cash')?.total_amount || 0);
-
         if(chartS) chartS.destroy();
         chartS = new Chart(document.getElementById('salesChart').getContext('2d'), {
             type: 'line',
@@ -169,12 +188,11 @@
     async function renderTopChart() {
         const { data: top } = await _s.rpc('get_top_10_products');
         if (!top) return;
-
         if(chartT) chartT.destroy();
         chartT = new Chart(document.getElementById('topChart').getContext('2d'), {
             type: 'bar',
             data: {
-                labels: top.slice(0, 10).map(t => t.product_name.substring(0, 10)),
+                labels: top.slice(0, 10).map(t => t.product_name.substring(0, 15)),
                 datasets: [{ label: 'ຈຳນວນຂາຍ', data: top.slice(0, 10).map(t => t.total_qty), backgroundColor: '#f59e0b', borderRadius: 4 }]
             },
             options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
