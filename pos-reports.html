@@ -79,11 +79,15 @@
         <span style="font-size: 11px; color: #94a3b8;">ຫາ</span>
         <input type="date" id="export-to">
         <button onclick="exportToExcel()" class="btn-export">
-            <span>📊</span> Export Excel
-        </button>
+        <span>📊</span> Export Excel
+            </button>
         <button onclick="exportProductPerformance()" class="btn-export" style="background: #f59e0b;">
     <span>🏆</span> Export ສິນຄ້າຂາຍດີ
-    </button>
+        </button>
+        <button onclick="exportLowStock()" class="btn-export" 
+    style="background: var(--danger); font-family: 'Phetsarath', sans-serif; font-size: 14px; font-weight: 600;">
+    <span>⚠️</span> Export ສິນຄ້າໃກ້ໝົດ
+        </button>
     </div>
 
     <div class="stat-grid">
@@ -285,6 +289,52 @@
     // 5. ດາວໂຫລດໄຟລ໌
     XLSX.writeFile(wb, `Product_Performance_${fromDate}_to_${toDate}.xlsx`);
 }
+
+async function exportLowStock() {
+    // 1. ດຶງຂໍ້ມູນສິນຄ້າທັງໝົດ
+    const { data: products, error } = await _s
+        .from('pos_products')
+        .select('barcode, name, category, stock_qty, min_stock, retail_price')
+        .order('category', { ascending: true });
+
+    if (error || !products) {
+        alert("ເກີດຂໍ້ຜິດພາດໃນການດຶງຂໍ້ມູນສິນຄ້າ!");
+        return;
+    }
+
+    // 2. ກັ່ນຕອງເອົາສະເພາະສິນຄ້າທີ່ stock_qty ນ້ອຍກວ່າ ຫຼື ເທົ່າກັບ min_stock
+    const lowStockItems = products.filter(p => Number(p.stock_qty) <= Number(p.min_stock));
+
+    if (lowStockItems.length === 0) {
+        alert("ຍິນດີດ້ວຍ! ບໍ່ມີສິນຄ້າໃກ້ໝົດສາງໃນເວລານີ້.");
+        return;
+    }
+
+    // 3. ຈັດຮູບແບບຂໍ້ມູນສຳລັບ Excel
+    const excelData = lowStockItems.map(p => ({
+        "ບາໂຄດ": p.barcode || '-',
+        "ຊື່ສິນຄ້າ": p.name,
+        "ໝວດໝູ່": p.category || 'ທົ່ວໄປ',
+        "ຈຳນວນຄັງເຫຼືອ": Number(p.stock_qty),
+        "ຈຳນວນຕໍ່າສຸດທີ່ຕ້ອງມີ": Number(p.min_stock),
+        "ສະຖານະ": Number(p.stock_qty) <= 0 ? "❌ ເຄື່ອງໝົດ" : "⚠️ ໃກ້ໝົດສາງ",
+        "ລາຄາຂາຍ": Number(p.retail_price)
+    }));
+
+    // 4. ສ້າງ Excel Workbook
+    const ws = XLSX.utils.json_to_sheet(excelData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Low Stock Alert");
+
+    // ປັບຄວາມກວ້າງ Column ໃຫ້ອ່ານງ່າຍ
+    ws['!cols'] = [
+        {wch: 15}, {wch: 30}, {wch: 15}, {wch: 15}, {wch: 20}, {wch: 15}, {wch: 12}
+    ];
+
+    // 5. ດາວໂຫລດໄຟລ໌
+    const today = new Date().toISOString().split('T')[0];
+    XLSX.writeFile(wb, `Low_Stock_Report_${today}.xlsx`);
+}    
     
     async function renderSalesChart() {
         const { data: trend } = await _s.rpc('get_sales_by_payment_7days');
