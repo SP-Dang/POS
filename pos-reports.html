@@ -81,6 +81,9 @@
         <button onclick="exportToExcel()" class="btn-export">
             <span>📊</span> Export Excel
         </button>
+        <button onclick="exportProductPerformance()" class="btn-export" style="background: #f59e0b;">
+    <span>🏆</span> Export ສິນຄ້າຂາຍດີ
+    </button>
     </div>
 
     <div class="stat-grid">
@@ -222,6 +225,67 @@
         XLSX.writeFile(wb, `Sales_Report_${fromDate}_to_${toDate}.xlsx`);
     }
 
+    async function exportProductPerformance() {
+    const fromDate = document.getElementById('export-from').value;
+    const toDate = document.getElementById('export-to').value;
+
+    if (!fromDate || !toDate) {
+        alert("ກະລຸນາເລືອກຊ່ວງວັນທີກ່ອນ!");
+        return;
+    }
+
+    // 1. ດຶງຂໍ້ມູນການຂາຍທັງໝົດໃນຊ່ວງວັນທີ (ຍົກເວັ້ນບິນທີ່ Refunded)
+    const { data: sales, error } = await _s
+        .from('pos_sales')
+        .select('items')
+        .neq('status', 'Refunded')
+        .gte('created_at', fromDate + "T00:00:00")
+        .lte('created_at', toDate + "T23:59:59");
+
+    if (error || !sales || sales.length === 0) {
+        alert("ບໍ່ມີຂໍ້ມູນການຂາຍໃນຊ່ວງວັນທີນີ້!");
+        return;
+    }
+
+    // 2. ປະມວນຜົນຂໍ້ມູນ: ລວມຍອດສິນຄ້າແຕ່ລະລາຍການ
+    const productMap = {};
+
+    sales.forEach(bill => {
+        // ແປງຂໍ້ມູນ items ຈາກ String/JSON ໃຫ້ເປັນ Array
+        const items = typeof bill.items === 'string' ? JSON.parse(bill.items) : bill.items;
+        
+        items.forEach(item => {
+            const id = item.id;
+            if (!productMap[id]) {
+                productMap[id] = {
+                    "ບາໂຄດ": item.barcode || '-',
+                    "ຊື່ສິນຄ້າ": item.name,
+                    "ໝວດໝູ່": item.category || 'ທົ່ວໄປ',
+                    "ລາຄາຂາຍ": Number(item.retail_price),
+                    "ຈຳນວນທີ່ຂາຍໄດ້ (Qty)": 0,
+                    "ຍອດຂາຍລວມ (Total)": 0
+                };
+            }
+            productMap[id]["ຈຳນວນທີ່ຂາຍໄດ້ (Qty)"] += Number(item.qty);
+            productMap[id]["ຍອດຂາຍລວມ (Total)"] += (Number(item.qty) * Number(item.retail_price));
+        });
+    });
+
+    // 3. ປ່ຽນເປັນ Array ແລະ ລຽງລໍາດັບຈາກ ຂາຍດີທີ່ສຸດ ໄປຫາ ໜ້ອຍສຸດ
+    const finalData = Object.values(productMap).sort((a, b) => b["ຈຳນວນທີ່ຂາຍໄດ້ (Qty)"] - a["ຈຳນວນທີ່ຂາຍໄດ້ (Qty)"]);
+
+    // 4. ສ້າງ Excel
+    const ws = XLSX.utils.json_to_sheet(finalData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Product Performance");
+
+    // ປັບຄວາມກວ້າງ Column
+    ws['!cols'] = [{wch: 15}, {wch: 30}, {wch: 15}, {wch: 12}, {wch: 20}, {wch: 20}];
+
+    // 5. ດາວໂຫລດໄຟລ໌
+    XLSX.writeFile(wb, `Product_Performance_${fromDate}_to_${toDate}.xlsx`);
+}
+    
     async function renderSalesChart() {
         const { data: trend } = await _s.rpc('get_sales_by_payment_7days');
         if (!trend) return;
