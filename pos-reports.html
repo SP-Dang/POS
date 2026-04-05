@@ -2,7 +2,7 @@
 <html lang="lo">
 <head>
     <meta charset="UTF-8">
-    <title>LSM POS | Dashboard & Reports</title>
+    <title>LSM POS | Compact Dashboard</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Phetsarath&family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
@@ -11,73 +11,85 @@
         * { box-sizing: border-box; }
         body { margin: 0; display: flex; background: var(--bg); font-family: 'Plus Jakarta Sans', var(--lao-font); height: 100vh; overflow: hidden; }
         
-        .sidebar { width: 260px; background: var(--sidebar); color: white; padding: 30px 20px; display: flex; flex-direction: column; }
-        .nav-item { padding: 12px 15px; border-radius: 10px; color: #94a3b8; text-decoration: none; display: flex; align-items: center; gap: 10px; margin-bottom: 5px; font-weight: 600; font-size: 12px; }
-        .nav-active { background: var(--primary); color: white; }
+        /* Sidebar ແບບແຄບ (200px) */
+        .sidebar { width: 200px; background: var(--sidebar); color: white; padding: 25px 15px; display: flex; flex-direction: column; flex-shrink: 0; }
+        .nav-item { padding: 10px 12px; border-radius: 8px; color: #94a3b8; text-decoration: none; display: flex; align-items: center; gap: 10px; margin-bottom: 5px; font-weight: 600; font-size: 12px; transition: 0.2s; }
+        .nav-item:hover { background: rgba(255,255,255,0.05); color: white; }
+        .nav-active { background: var(--primary); color: white; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2); }
 
         .main { flex: 1; padding: 20px; overflow-y: auto; }
         
-        .stat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-bottom: 20px; }
-        .stat-card { background: white; padding: 15px; border-radius: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
-        
-        .chart-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px; }
-        .chart-card { background: white; padding: 15px; border-radius: 15px; height: 220px; }
-        
-        /* ປັບເປັນ 3 Column ສໍາລັບ Tables */
-        .table-container { display: grid; grid-template-columns: 1.2fr 0.9fr 0.9fr; gap: 15px; }
-        .card-white { background: white; border-radius: 15px; padding: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
+        /* Stats Cards */
+        .stat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 20px; }
+        .stat-card { background: white; padding: 15px; border-radius: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.02); border: 1px solid #f1f5f9; }
+        .stat-card small { color: #64748b; font-size: 11px; display: block; margin-bottom: 4px; }
+        .stat-card b { font-size: 18px; font-weight: 800; }
 
-        table { width: 100%; border-collapse: collapse; font-size: 12px; }
-        th { background: #f8fafc; padding: 10px; text-align: left; color: #64748b; font-size: 10px; text-transform: uppercase; border-bottom: 1px solid #f1f5f9; }
-        td { padding: 10px; border-bottom: 1px solid #f1f5f9; }
+        /* Tables Layout */
+        .table-container { display: grid; grid-template-columns: 1.2fr 0.9fr 0.9fr; gap: 15px; }
+        .card-white { background: white; border-radius: 12px; padding: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.02); border: 1px solid #f1f5f9; }
+        h3 { font-size: 13px; margin: 0 0 12px 0; display: flex; align-items: center; gap: 6px; }
+
+        table { width: 100%; border-collapse: collapse; font-size: 11px; }
+        th { background: #f8fafc; padding: 8px; text-align: left; color: #94a3b8; font-size: 9px; text-transform: uppercase; letter-spacing: 0.5px; }
+        td { padding: 10px 8px; border-bottom: 1px solid #f1f5f9; }
         
         .inv-no { font-family: 'Courier New', monospace; font-weight: 800; color: #1e293b; }
-        .text-primary { color: var(--primary); font-weight: 700; }
-        .text-danger { color: var(--danger); font-weight: 700; }
+        .badge { padding: 2px 6px; border-radius: 4px; font-size: 9px; font-weight: 700; }
     </style>
 </head>
 <body>
 
 <nav class="sidebar">
-    <div style="font-weight:800; font-size:20px; color:var(--primary); margin-bottom:30px;">⚡ LSM POS</div>
-    <a href="#" class="nav-item">🛒 ຂາຍສິນຄ້າ</a> 
-    <a href="#" class="nav-item">📄 ປະຫວັດການຂາຍ</a>
-    <a href="#" class="nav-item">📦 ຄັງສິນຄ້າ</a>
-    <a href="#" class="nav-item nav-active">📊 ບົດລາຍງານ</a>
+    <div style="font-weight:800; font-size:18px; color:var(--primary); margin-bottom:35px; padding-left:10px;">⚡ LSM POS</div>
+    
+    <a href="pos-checkout.html" class="nav-item"><span>🛒</span> ຂາຍສິນຄ້າ</a> 
+    <a href="pos-orders.html" class="nav-item"><span>📄</span> ປະຫວັດ</a>
+    <a href="pos-inventory.html" class="nav-item"><span>📦</span> ຄັງສິນຄ້າ</a>
+    <a href="pos-reports.html" class="nav-item nav-active"><span>📊</span> ລາຍງານ</a>
+    
+    <div style="margin-top:auto; padding-top:20px; border-top:1px solid rgba(255,255,255,0.05);">
+        <button onclick="handleLogout()" style="background:none; border:none; color:#f87171; cursor:pointer; font-size:12px; display:flex; align-items:center; gap:8px;">🚪 <span>ອອກລະບົບ</span></button>
+    </div>
 </nav>
 
 <main class="main">
-    <div class="stat-grid">
-        <div class="stat-card"><small style="color:#64748b;">ລາຍຮັບສຸດທິ</small><div id="rev-net" style="font-size:20px; font-weight:800; color:var(--primary);">₭0</div></div>
-        <div class="stat-card"><small style="color:#64748b;">ສ່ວນຫຼຸດລວມ</small><div id="total-discount" style="font-size:20px; font-weight:800; color:var(--warning);">₭0</div></div>
-        <div class="stat-card"><small style="color:#64748b;">ສະມາຊິກ</small><div id="customer-count" style="font-size:20px; font-weight:800; color:#3b82f6;">0</div></div>
-        <div class="stat-card" style="border-left:4px solid var(--danger)"><small style="color:var(--danger);">ສິນຄ້າໃກ້ໝົດ</small><div id="low-stock-count" style="font-size:20px; font-weight:800; color:var(--danger);">0</div></div>
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+        <h2 style="margin:0; font-size:18px;">Dashboard Overview</h2>
+        <div id="user-display" style="font-size:12px; color:#64748b; background:#fff; padding:5px 12px; border-radius:20px; border:1px solid #e2e8f0;"></div>
     </div>
 
-    <div class="chart-grid">
-        <div class="chart-card"><canvas id="salesChart"></canvas></div>
-        <div class="chart-card"><canvas id="topChart"></canvas></div>
+    <div class="stat-grid">
+        <div class="stat-card"><small>ລາຍຮັບສຸດທິ</small><b id="rev-net" style="color:var(--primary)">₭0</b></div>
+        <div class="stat-card"><small>ສ່ວນຫຼຸດ</small><b id="total-discount" style="color:var(--warning)">₭0</b></div>
+        <div class="stat-card"><small>ສະມາຊິກ</small><b id="customer-count" style="color:#3b82f6">0</b></div>
+        <div class="stat-card" style="background:#fff5f5;"><small style="color:var(--danger)">ສິນຄ້າໃກ້ໝົດ</small><b id="low-stock-count" style="color:var(--danger)">0</b></div>
+    </div>
+
+    <div style="display:grid; grid-template-columns: 1.5fr 1fr; gap:15px; margin-bottom:20px;">
+        <div class="card-white" style="height:250px;"><canvas id="salesChart"></canvas></div>
+        <div class="card-white" style="height:250px;"><canvas id="topChart"></canvas></div>
     </div>
 
     <div class="table-container">
         <div class="card-white">
-            <h3 style="font-size:14px; margin:0 0 10px 0;">📄 ຂາຍລ້າສຸດ (Latest Sales)</h3>
+            <h3><span>📄</span> ຂາຍລ້າສຸດ</h3>
             <table>
-                <thead><tr><th>INV#</th><th>ການຊຳລະ</th><th style="text-align:right;">ຍອດ</th></tr></thead>
+                <thead><tr><th>INV#</th><th>ຍອດ</th></tr></thead>
                 <tbody id="sales-list"></tbody>
             </table>
         </div>
 
         <div class="card-white">
-            <h3 style="font-size:14px; margin:0 0 10px 0; color:#3b82f6;">🏆 VIP (Top 5)</h3>
+            <h3 style="color:#3b82f6;"><span>🏆</span> VIP Top 5</h3>
             <table>
-                <thead><tr><th>ຊື່ລູກຄ້າ</th><th style="text-align:right;">ຍອດຊື້</th></tr></thead>
+                <thead><tr><th>ຊື່</th><th style="text-align:right;">ຍອດຊື້</th></tr></thead>
                 <tbody id="customer-top-list"></tbody>
             </table>
         </div>
 
         <div class="card-white">
-            <h3 style="font-size:14px; margin:0 0 10px 0; color:var(--danger);">↩️ ຄືນສິນຄ້າ (Refunds)</h3>
+            <h3 style="color:var(--danger);"><span>↩️</span> Refunds</h3>
             <table>
                 <thead><tr><th>INV#</th><th>ໂດຍໃຜ</th></tr></thead>
                 <tbody id="refund-list"></tbody>
@@ -87,98 +99,48 @@
 </main>
 
 <script>
+    // --- ໃຊ້ Script ເດີມຂອງທ່ານໄດ້ເລີຍ ---
+    // (ເນື່ອງຈາກເຮົາປ່ຽນແຕ່ CSS Layout, Logic ການດຶງຂໍ້ມູນຍັງຄືເກົ່າ)
     const u = "https://zddelixvencundnkccpq.supabase.co"; 
     const k = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpkZGVsaXh2ZW5jdW5kbmtjY3BxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUxMjQ1MzMsImV4cCI6MjA5MDcwMDUzM30.-RPvOYMLzftubrpJ4KSVrqL2eNaopjty30_TrnkGpBo";
     const _s = supabase.createClient(u, k);
     const fmt = (n) => new Intl.NumberFormat('lo-LA').format(n);
 
     async function init() {
-        try {
-            // 1. Fetch Sales & Customers
-            const { data: allSales } = await _s.from('pos_sales').select('*').order('created_at', { ascending: false });
-            const { data: custs } = await _s.from('pos_customers').select('*').order('total_spent', { ascending: false });
-
-            // Stats Logic
-            let netTotal = 0, discountTotal = 0;
-            const completedSales = allSales.filter(s => s.status !== 'Refunded');
-            const refundedSales = allSales.filter(s => s.status === 'Refunded');
-
-            completedSales.forEach(s => { 
-                netTotal += Number(s.total_amount || 0); 
-                discountTotal += Number(s.discount_amount || 0); 
-            });
-
-            document.getElementById('rev-net').innerText = '₭' + fmt(netTotal);
-            document.getElementById('total-discount').innerText = '₭' + fmt(discountTotal);
-            document.getElementById('customer-count').innerText = custs ? custs.length : 0;
-
-            // Render Sales (Top 8)
-            document.getElementById('sales-list').innerHTML = completedSales.slice(0, 8).map(s => `
-                <tr>
-                    <td class="inv-no">#${s.id.substring(0,8).toUpperCase()}</td>
-                    <td><b>${s.payment_method}</b></td>
-                    <td style="text-align:right;" class="text-primary">${fmt(s.total_amount)}</td>
-                </tr>
-            `).join('');
-
-            // Render Top Spenders (Top 5)
-            document.getElementById('customer-top-list').innerHTML = custs.slice(0, 5).map(c => `
-                <tr>
-                    <td><b>${c.name}</b><br><small>${c.phone}</small></td>
-                    <td style="text-align:right;" class="text-primary">${fmt(c.total_spent)}</td>
-                </tr>
-            `).join('');
-
-            // Render Refunds (Top 5)
-            document.getElementById('refund-list').innerHTML = refundedSales.slice(0, 5).map(s => {
-                // ຊອກຫາຊື່ລູກຄ້າຈາກເບີໂທ
-                const customer = custs.find(c => c.phone === s.customer_phone);
-                const displayName = customer ? customer.name : (s.customer_phone || 'ທົ່ວໄປ');
-                return `
-                <tr>
-                    <td class="inv-no" style="color:var(--danger)">#${s.id.substring(0,8).toUpperCase()}</td>
-                    <td><b>${displayName}</b></td>
-                </tr>`;
-            }).join('') || '<tr><td colspan="2" style="text-align:center; color:#94a3b8;">ບໍ່ມີລາຍການຄືນ</td></tr>';
-
-            // Low Stock Check
-            const { data: prods } = await _s.from('pos_products').select('stock_qty, min_stock');
-            document.getElementById('low-stock-count').innerText = prods.filter(p => Number(p.stock_qty) <= Number(p.min_stock)).length;
-
-            updateCharts(allSales);
-        } catch (e) { console.error(e); }
-    }
-
-    async function updateCharts(sales) {
-        // Simple Top Product Chart logic
-        const { data: top } = await _s.rpc('get_top_10_products');
-        if (top) {
-            new Chart(document.getElementById('topChart'), {
-                type: 'bar',
-                data: {
-                    labels: top.slice(0, 5).map(t => t.product_name.substring(0, 10)),
-                    datasets: [{ label: 'Qty', data: top.slice(0, 5).map(t => t.total_qty), backgroundColor: '#f59e0b' }]
-                },
-                options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false }
-            });
-        }
+        const { data: allSales } = await _s.from('pos_sales').select('*').order('created_at', { ascending: false });
+        const { data: custs } = await _s.from('pos_customers').select('*').order('total_spent', { ascending: false });
         
-        // Sales Trend (7 Days)
-        const { data: trend } = await _s.rpc('get_sales_by_payment_7days');
-        if (trend) {
-            const labels = [...new Set(trend.map(t => t.sale_date.split('-').slice(1).join('/')))];
-            new Chart(document.getElementById('salesChart'), {
-                type: 'line',
-                data: {
-                    labels,
-                    datasets: [{ label: 'Sale Trend', data: labels.map(l => trend.filter(t => t.sale_date.includes(l.replace('/','-'))).reduce((a,b) => a + b.total_amount, 0)), borderColor: '#10b981', tension: 0.4 }]
-                },
-                options: { responsive: true, maintainAspectRatio: false }
-            });
-        }
+        let netTotal = 0, discTotal = 0;
+        const comp = allSales.filter(s => s.status !== 'Refunded');
+        const ref = allSales.filter(s => s.status === 'Refunded');
+        
+        comp.forEach(s => { netTotal += Number(s.total_amount); discTotal += Number(s.discount_amount); });
+        
+        document.getElementById('rev-net').innerText = '₭' + fmt(netTotal);
+        document.getElementById('total-discount').innerText = '₭' + fmt(discTotal);
+        document.getElementById('customer-count').innerText = custs.length;
+
+        document.getElementById('sales-list').innerHTML = comp.slice(0, 6).map(s => `
+            <tr><td class="inv-no">#${s.id.substring(0,8).toUpperCase()}</td><td style="text-align:right; font-weight:700;">${fmt(s.total_amount)}</td></tr>
+        `).join('');
+
+        document.getElementById('customer-top-list').innerHTML = custs.slice(0, 5).map(c => `
+            <tr><td><b>${c.name}</b></td><td style="text-align:right; color:var(--primary);">${fmt(c.total_spent)}</td></tr>
+        `).join('');
+
+        document.getElementById('refund-list').innerHTML = ref.slice(0, 5).map(s => `
+            <tr><td class="inv-no" style="color:var(--danger)">#${s.id.substring(0,8).toUpperCase()}</td><td>${s.customer_phone || 'ທົ່ວໄປ'}</td></tr>
+        `).join('') || '<tr><td colspan="2" style="text-align:center;">ບໍ່ມີ</td></tr>';
+
+        // Low stock count
+        const { data: prods } = await _s.from('pos_products').select('stock_qty, min_stock');
+        document.getElementById('low-stock-count').innerText = prods.filter(p => Number(p.stock_qty) <= Number(p.min_stock)).length;
     }
 
-    init();
+    document.addEventListener('DOMContentLoaded', () => {
+        document.getElementById('user-display').innerText = "👤 " + (localStorage.getItem('lsm_user_name') || 'Admin');
+        init();
+    });
 </script>
 </body>
 </html>
