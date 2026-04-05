@@ -11,14 +11,12 @@
         * { box-sizing: border-box; }
         body { margin: 0; display: flex; background: var(--bg); font-family: 'Plus Jakarta Sans', var(--lao-font); height: 100vh; overflow: hidden; }
         
-        /* Sidebar */
         .sidebar { width: 260px; background: var(--sidebar); color: white; padding: 30px 20px; display: flex; flex-direction: column; }
         .nav-item { padding: 12px 15px; border-radius: 10px; color: #94a3b8; text-decoration: none; display: flex; align-items: center; gap: 10px; margin-bottom: 5px; font-weight: 600; font-size: 13px; }
         .nav-active { background: var(--primary); color: white; }
 
         .main { flex: 1; padding: 25px; overflow-y: auto; }
         
-        /* Layouts */
         .chart-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px; }
         .chart-card { background: white; padding: 15px; border-radius: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.02); height: 220px; }
         
@@ -30,7 +28,7 @@
         td { padding: 12px 10px; border-bottom: 1px solid #f1f5f9; }
         
         .badge-refund { background: #fee2e2; color: #b91c1c; padding: 2px 6px; border-radius: 8px; font-size: 10px; font-weight: 800; }
-        .inv-no { font-family: 'Courier New', monospace; color: #64748b; font-weight: 800; font-size: 13px; }
+        .inv-no { font-family: 'Courier New', monospace; color: #1e293b; font-weight: 800; font-size: 13px; }
         
         .low-stock-table { font-size: 11px; width: 100%; margin-top: 8px; }
         .low-stock-table td { padding: 4px 0; border: none; }
@@ -112,32 +110,35 @@
     async function init() {
         try {
             // 1. Fetch Sales List
-const { data: sales, error } = await _s.from('pos_sales')
-    .select('*')
-    .order('created_at', { ascending: false })
-    .limit(20);
+            const { data: sales, error } = await _s.from('pos_sales').select('*').order('created_at', { ascending: false }).limit(20);
+            if (error) throw error;
 
-if (error) throw error;
+            let netTotal = 0;
+            let discountTotal = 0;
 
-document.getElementById('sales-list').innerHTML = sales.map(s => {
-    const isRef = s.status === 'Refunded';
-    
-    // ແກ້ໄຂຈຸດນີ້: ໃຊ້ substring(0, 8) ເພື່ອໃຫ້ໄດ້ "#F23A87CF"
-    const invNo = s.id.toString().substring(0, 8).toUpperCase(); 
-    
-    const date = new Date(s.created_at).toLocaleString('lo-LA', { 
-        day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' 
-    });
+            const listHtml = sales.map(s => {
+                const isRef = s.status === 'Refunded';
+                if(!isRef) { 
+                    netTotal += (Number(s.total_amount) || 0); 
+                    discountTotal += (Number(s.discount_amount) || 0);
+                }
+                
+                const invNo = s.id.toString().substring(0, 8).toUpperCase(); 
+                const date = new Date(s.created_at).toLocaleString('lo-LA', { 
+                    day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' 
+                });
 
-    return `<tr>
-        <td class="inv-no" style="color:#1e293b; font-weight:800; font-family: 'Courier New', monospace;">#${invNo}</td>
-        <td>${date}</td>
-        <td>${s.customer_phone || '-'}</td>
-        <td><b>${s.payment_method}</b></td>
-        <td>${isRef ? '<span class="badge-refund">ຄືນສິນຄ້າ</span>' : '<span style="color:var(--primary); font-weight:bold;">ສຳເລັດ</span>'}</td>
-        <td style="text-align:right; font-weight:800; ${isRef ? 'text-decoration:line-through; color:#94a3b8;' : ''}">${fmt(s.total_amount)}</td>
-    </tr>`;
-}).join('');
+                return `<tr>
+                    <td class="inv-no">#${invNo}</td>
+                    <td>${date}</td>
+                    <td>${s.customer_phone || '-'}</td>
+                    <td><b>${s.payment_method}</b></td>
+                    <td>${isRef ? '<span class="badge-refund">ຄືນສິນຄ້າ</span>' : '<span style="color:var(--primary); font-weight:bold;">ສຳເລັດ</span>'}</td>
+                    <td style="text-align:right; font-weight:800; ${isRef ? 'text-decoration:line-through; color:#94a3b8;' : ''}">${fmt(s.total_amount)}</td>
+                </tr>`;
+            }).join('');
+
+            document.getElementById('sales-list').innerHTML = listHtml;
             document.getElementById('rev-net').innerText = '₭' + fmt(netTotal);
             document.getElementById('total-discount').innerText = '₭' + fmt(discountTotal);
 
@@ -152,45 +153,56 @@ document.getElementById('sales-list').innerHTML = sales.map(s => {
                 `).join('') : '<tr><td colspan="2" style="color:var(--primary); text-align:center;">✅ ສະຕັອກປົກກະຕິ</td></tr>';
             }
 
+            // 3. Render Charts
             updateCharts();
-        } catch (e) { console.error(e); }
+        } catch (e) { 
+            console.error("Initialization Error:", e); 
+        }
     }
 
     async function updateCharts() {
-        const { data: trend } = await _s.rpc('get_sales_by_payment_7days');
-        if (trend) {
-            const labels = [...new Set(trend.map(t => t.sale_date.split('-').slice(1).join('/')))];
-            const cash = labels.map(l => trend.find(t => t.sale_date.includes(l.replace('/','-')) && t.payment_method === 'Cash')?.total_amount || 0);
-            const qr = labels.map(l => trend.find(t => t.sale_date.includes(l.replace('/','-')) && t.payment_method === 'QR Code')?.total_amount || 0);
+        try {
+            // Sales Trend
+            const { data: trend } = await _s.rpc('get_sales_by_payment_7days');
+            if (trend && trend.length > 0) {
+                const labels = [...new Set(trend.map(t => t.sale_date.split('-').slice(1).join('/')))];
+                const cash = labels.map(l => trend.find(t => t.sale_date.includes(l.replace('/','-')) && t.payment_method === 'Cash')?.total_amount || 0);
+                const qr = labels.map(l => trend.find(t => t.sale_date.includes(l.replace('/','-')) && t.payment_method === 'QR Code')?.total_amount || 0);
 
-            if(chartS) chartS.destroy();
-            chartS = new Chart(document.getElementById('salesChart'), {
-                type: 'line',
-                data: { labels, datasets: [
-                    { label: 'QR', data: qr, borderColor: '#3b82f6', tension: 0.4, pointRadius: 2 },
-                    { label: 'Cash', data: cash, borderColor: '#10b981', tension: 0.4, pointRadius: 2 }
-                ]},
-                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { boxWidth: 8, font: { size: 10 } } } } }
-            });
-        }
+                if(chartS) chartS.destroy();
+                chartS = new Chart(document.getElementById('salesChart'), {
+                    type: 'line',
+                    data: { labels, datasets: [
+                        { label: 'QR', data: qr, borderColor: '#3b82f6', tension: 0.4, pointRadius: 2 },
+                        { label: 'Cash', data: cash, borderColor: '#10b981', tension: 0.4, pointRadius: 2 }
+                    ]},
+                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { boxWidth: 8, font: { size: 10 } } } } }
+                });
+            }
 
-        const { data: top } = await _s.rpc('get_top_10_products');
-        if (top && top.length > 0) {
-            if(chartT) chartT.destroy();
-            chartT = new Chart(document.getElementById('topChart'), {
-                type: 'bar',
-                data: {
-                    labels: top.map(t => t.product_name.substring(0, 10)),
-                    datasets: [{ label: 'Qty', data: top.map(t => t.total_qty), backgroundColor: '#f59e0b' }]
-                },
-                options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
-            });
+            // Top 10 Products
+            const { data: top } = await _s.rpc('get_top_10_products');
+            if (top && top.length > 0) {
+                if(chartT) chartT.destroy();
+                chartT = new Chart(document.getElementById('topChart'), {
+                    type: 'bar',
+                    data: {
+                        labels: top.map(t => t.product_name.substring(0, 10)),
+                        datasets: [{ label: 'Qty', data: top.map(t => t.total_qty), backgroundColor: '#f59e0b' }]
+                    },
+                    options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+                });
+            }
+        } catch (e) {
+            console.error("Chart Rendering Error:", e);
         }
     }
 
     function handleLogout() { localStorage.clear(); window.location.href = 'login.html'; }
+    
     document.addEventListener('DOMContentLoaded', () => {
-        document.getElementById('user-display').innerText = "User: " + (localStorage.getItem('lsm_user_name') || 'Admin');
+        const userName = localStorage.getItem('lsm_user_name') || 'Admin';
+        document.getElementById('user-display').innerText = "User: " + userName;
         init();
     });
 </script>
