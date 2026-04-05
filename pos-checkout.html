@@ -47,9 +47,10 @@
         @media print {
             body * { visibility: hidden; }
             #print-receipt, #print-receipt * { visibility: visible; }
-            #print-receipt { display: block; position: absolute; left: 0; top: 0; width: 58mm; padding: 2mm; font-size: 10px; line-height: 1.4; color: black; }
-            .r-line { border-top: 1px dashed #000; margin: 4px 0; }
-            .receipt-row { display: flex; justify-content: space-between; gap: 5px; margin-bottom: 3px; }
+            #print-receipt { display: block; position: absolute; left: 0; top: 0; width: 58mm; padding: 0; margin: 0; font-size: 10px; line-height: 1.3; color: black; background: white; }
+            .r-line { border-top: 1px dashed #000; margin: 5px 0; }
+            .receipt-row { display: flex; justify-content: space-between; gap: 5px; margin-bottom: 2px; }
+            .r-center { text-align: center; }
         }
     </style>
 </head>
@@ -116,28 +117,28 @@
             </div>
             <div id="points-preview" style="text-align:right; font-size:11px; margin-top:5px; opacity:0.8;">+0 Points</div>
         </div>
-        <button class="btn-complete" onclick="finishOrder()">ສຳເລັດການຂາຍ</button>
+        <button id="btn-complete-sale" class="btn-complete" onclick="finishOrder()">ສຳເລັດການຂາຍ</button>
     </section>
 </div>
 
 <div id="print-receipt">
-    <div style="text-align:center;">
-        <h3 style="margin:0;">ໃບຮັບເງິນ</h3>
+    <div class="r-center">
+        <h3 style="margin:0; font-size:14px;">ໃບຮັບເງິນ</h3>
         <p style="margin:2px 0;">mPOS System</p>
-        <p class="shop-info">ຮ້ານ .................... ໂທ: 020xxxxxxx</p>
+        <p>ຮ້ານ................ ໂທ: 020xxxxxxx</p>
     </div>
     <div class="r-line"></div>
-    <div id="receipt-header-info"></div>
+    <div id="r-header-info"></div>
     <div class="r-line"></div>
-    <div id="receipt-items"></div>
+    <div id="r-items-list"></div>
     <div class="r-line"></div>
-    <div id="receipt-totals" style="font-weight:bold;"></div>
-    <div id="receipt-loyalty" style="font-size:9px; margin-top:5px;"></div>
+    <div id="r-totals-area"></div>
+    <div id="r-loyalty-area" style="font-size:9px; margin-top:5px;"></div>
     <div class="r-line"></div>
-    <div style="text-align:center;">
-        <svg id="receipt-barcode"></svg>
+    <div class="r-center">
+        <svg id="r-barcode"></svg>
         <p style="margin-top:5px;">ຂໍຂອບໃຈທີ່ໃຊ້ບໍລິການ</p>
-        <p style="font-size:8px;">Powered by Somphone 02055348882</p>
+        <p style="font-size:8px; opacity:0.7;">Powered by Somphone 02055348882</p>
     </div>
 </div>
 
@@ -158,7 +159,7 @@
         if (phone.length < 5) {
             document.getElementById('cust-info').style.display = 'none';
             selectedCustomer = null;
-            drawCart(); // refresh totals to hide discount
+            drawCart();
             return;
         }
         const { data } = await _s.from('pos_customers').select('*').eq('phone', phone).maybeSingle();
@@ -174,14 +175,15 @@
         drawCart();
     }
 
-    async function syncToCustomerDisplay(qrString = "", finalTotal = 0) {
-        await _s.from('customer_display').upsert([{ 
-            id: DISPLAY_ID, 
-            amount: finalTotal, 
-            qr_string: qrString, 
-            status: 'PENDING',
-            items: cart 
-        }]);
+    async function syncIfQR(finalTotal) {
+        if (payMethod === 'QR Code' && finalTotal > 0) {
+            const amountStr = Math.round(finalTotal).toString();
+            let payload = "00020101021138670016A00526628466257701082771041802030010324QDZNRPLTFVYIIIOJNUCUZYGC530341854" + amountStr.length.toString().padStart(2, '0') + amountStr + "5802LA6304";
+            const finalQR = payload + crc16(payload);
+            await _s.from('customer_display').upsert([{ id: DISPLAY_ID, amount: finalTotal, qr_string: finalQR, status: 'PENDING', items: cart }]);
+        } else {
+            await _s.from('customer_display').upsert([{ id: DISPLAY_ID, amount: finalTotal, qr_string: "", status: 'PENDING', items: cart }]);
+        }
     }
 
     function crc16(data) {
@@ -192,19 +194,6 @@
             crc = ((crc << 8) ^ (x << 12) ^ (x << 5) ^ x) & 0xFFFF;
         }
         return crc.toString(16).toUpperCase().padStart(4, '0');
-    }
-
-    async function syncIfQR(finalTotal) {
-        if (payMethod === 'QR Code' && finalTotal > 0) {
-            const amountStr = Math.round(finalTotal).toString();
-            let payload = "00020101021138670016A00526628466257701082771041802030010324QDZNRPLTFVYIIIOJNUCUZYGC5303418";
-            payload += "54" + amountStr.length.toString().padStart(2, '0') + amountStr; 
-            payload += "5802LA6304";
-            const finalQR = payload + crc16(payload);
-            await syncToCustomerDisplay(finalQR, finalTotal);
-        } else {
-            await syncToCustomerDisplay("", finalTotal);
-        }
     }
 
     document.getElementById('manual-input').addEventListener('keypress', (e) => {
@@ -242,37 +231,28 @@
             </tr>`).join('');
         
         let subtotal = cart.reduce((s, i) => s + (i.retail_price * i.qty), 0);
-        let discount = 0;
+        let discount = (selectedCustomer && selectedCustomer.points >= 100) ? 40000 : 0;
         
-        // Preview discount if points >= 100
-        if (selectedCustomer && selectedCustomer.points >= 100) {
-            discount = 40000;
+        if (discount > 0) {
             document.getElementById('discount-label').style.display = 'flex';
             document.getElementById('discount-val').innerText = "-" + formatLAK(discount);
         } else {
             document.getElementById('discount-label').style.display = 'none';
         }
 
-        let finalTotal = subtotal - discount;
-        if (finalTotal < 0) finalTotal = 0;
-
+        let finalTotal = Math.max(0, subtotal - discount);
         document.getElementById('grand-total').innerText = formatLAK(finalTotal);
         document.getElementById('points-preview').innerText = `+${Math.floor(subtotal/50000)} Points (50k = 1pt)`;
-        
         syncIfQR(finalTotal);
     }
 
     function adjQty(idx, n) { cart[idx].qty += n; if (cart[idx].qty <= 0) cart.splice(idx, 1); drawCart(); }
     function remItem(idx) { cart.splice(idx, 1); drawCart(); }
-    function setPay(m, b) { 
-        payMethod = m; 
-        document.querySelectorAll('.pay-btn').forEach(x => x.classList.remove('active')); 
-        b.classList.add('active'); 
-        drawCart(); 
-    }
+    function setPay(m, b) { payMethod = m; document.querySelectorAll('.pay-btn').forEach(x => x.classList.remove('active')); b.classList.add('active'); drawCart(); }
 
     async function finishOrder() {
         if (cart.length === 0) return;
+        document.getElementById('btn-complete-sale').disabled = true;
         
         let subtotal = cart.reduce((s, i) => s + (i.retail_price * i.qty), 0);
         let earned = Math.floor(subtotal / 50000);
@@ -284,62 +264,73 @@
             if (pointsToUpdate >= 100) {
                 discount = 40000;
                 pointsToUpdate -= 100;
-                alert("🎉 ລູກຄ້າໄດ້ໃຊ້ 100 ຄະແນນ ເພື່ອຮັບສ່ວນຫຼຸດ 40,000 ກີບ!");
             }
         }
 
-        let finalTotal = subtotal - discount;
-        if (finalTotal < 0) finalTotal = 0;
+        let finalTotal = Math.max(0, subtotal - discount);
 
-        // 1. Save Sale with Discount
-        const { data, error } = await _s.from('pos_sales').insert([{ 
-            items: cart, 
-            total_amount: finalTotal, 
-            payment_method: payMethod, 
-            customer_phone: selectedCustomer ? selectedCustomer.phone : null,
-            discount_amount: discount 
-        }]).select();
+        try {
+            // 1. Update Inventory Stock for each item in cart
+            for (const item of cart) {
+                const { data: pData } = await _s.from('pos_products').select('stock').eq('barcode', item.barcode).single();
+                const newStock = (pData ? pData.stock : 0) - item.qty;
+                await _s.from('pos_products').update({ stock: newStock }).eq('barcode', item.barcode);
+            }
 
-        if (error) return alert("DB Error: " + error.message);
+            // 2. Save Sale
+            const { data: saleData, error: saleErr } = await _s.from('pos_sales').insert([{ 
+                items: cart, total_amount: finalTotal, payment_method: payMethod, 
+                customer_phone: selectedCustomer ? selectedCustomer.phone : null, discount_amount: discount 
+            }]).select();
 
-        // 2. Update Customer Points
-        if (selectedCustomer) {
-            await _s.from('pos_customers').update({ 
-                points: pointsToUpdate,
-                total_spent: parseFloat(selectedCustomer.total_spent) + finalTotal
-            }).eq('phone', selectedCustomer.phone);
+            if (saleErr) throw saleErr;
+
+            // 3. Update Customer Points
+            if (selectedCustomer) {
+                await _s.from('pos_customers').update({ 
+                    points: pointsToUpdate, total_spent: parseFloat(selectedCustomer.total_spent) + finalTotal 
+                }).eq('phone', selectedCustomer.phone);
+            }
+
+            // 4. Reset Display & Print
+            await _s.from('customer_display').update({ status: 'PAID', qr_string: "", items: [] }).eq('id', DISPLAY_ID);
+            
+            // Prepare and Print Receipt
+            renderReceipt(saleData[0], finalTotal, discount, pointsToUpdate);
+            
+        } catch (err) {
+            alert("Error: " + err.message);
+            document.getElementById('btn-complete-sale').disabled = false;
         }
-
-        // 3. Close Display
-        await _s.from('customer_display').update({ status: 'PAID', qr_string: "", items: [] }).eq('id', DISPLAY_ID);
-
-        printReceipt(data[0], finalTotal, discount, pointsToUpdate);
     }
 
-    function printReceipt(order, finalTotal, discount, remainingPoints) {
+    function renderReceipt(order, finalTotal, discount, remainingPoints) {
         const shortID = order.id.substring(0, 8).toUpperCase();
-        document.getElementById('receipt-header-info').innerHTML = `ID: #${shortID}<br>Date: ${new Date().toLocaleString()}`;
-        document.getElementById('receipt-items').innerHTML = cart.map(i => `
+        document.getElementById('r-header-info').innerHTML = `ID: #${shortID}<br>Date: ${new Date().toLocaleString()}`;
+        document.getElementById('r-items-list').innerHTML = cart.map(i => `
             <div class="receipt-row"><span>${i.name} x${i.qty}</span><span>${(i.retail_price * i.qty).toLocaleString()}</span></div>
         `).join('');
         
-        let totalHTML = `<div class="r-line"></div>`;
+        let totalHTML = "";
         if (discount > 0) {
-            totalHTML += `<div class="receipt-row"><span>ສ່ວນຫຼຸດ (100pts)</span><span>-${discount.toLocaleString()}</span></div>`;
+            totalHTML += `<div class="receipt-row"><span>ສ່ວນຫຼຸດ (Redeem)</span><span>-${discount.toLocaleString()}</span></div>`;
         }
-        totalHTML += `<div class="receipt-row" style="font-size:12px;"><span>ຍອດລວມສຸດທິ</span><span>${finalTotal.toLocaleString()} LAK</span></div>`;
-        document.getElementById('receipt-totals').innerHTML = totalHTML;
+        totalHTML += `<div class="receipt-row" style="font-weight:bold; font-size:12px;"><span>ລວມສຸດທິ</span><span>${finalTotal.toLocaleString()} LAK</span></div>`;
+        totalHTML += `<div class="receipt-row"><span>ວິທີຊຳລະ</span><span>${payMethod}</span></div>`;
+        document.getElementById('r-totals-area').innerHTML = totalHTML;
         
         if (selectedCustomer) {
-            document.getElementById('receipt-loyalty').innerHTML = `
-                Customer: ${selectedCustomer.name}<br>
-                ຄະແນນຄົງເຫຼືອ: ${remainingPoints} ⭐
-            `;
+            document.getElementById('r-loyalty-area').innerHTML = `ລູກຄ້າ: ${selectedCustomer.name}<br>ຄະແນນຄົງເຫຼືອ: ${remainingPoints} ⭐`;
+        } else {
+            document.getElementById('r-loyalty-area').innerHTML = "";
         }
 
-        JsBarcode("#receipt-barcode", shortID, { format: "CODE128", width: 1.5, height: 40, displayValue: false });
+        JsBarcode("#r-barcode", shortID, { format: "CODE128", width: 1.5, height: 35, displayValue: false });
 
-        setTimeout(() => { window.print(); location.reload(); }, 500);
+        setTimeout(() => {
+            window.print();
+            location.reload();
+        }, 600);
     }
 
     function initializeUser() {
