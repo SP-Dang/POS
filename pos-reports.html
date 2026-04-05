@@ -16,6 +16,7 @@
         .sidebar { width: 200px; background: var(--sidebar); color: white; padding: 25px 15px; display: flex; flex-direction: column; flex-shrink: 0; }
         .nav-item { padding: 10px 12px; border-radius: 8px; color: #94a3b8; text-decoration: none; display: flex; align-items: center; gap: 10px; margin-bottom: 5px; font-weight: 600; font-size: 15px; transition: 0.2s; }
         .nav-active { background: var(--primary); color: white; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2); }
+        .nav-item:hover { background: rgba(255,255,255,0.1); color: white; }
 
         .main { flex: 1; padding: 20px; overflow-y: auto; }
         
@@ -47,11 +48,14 @@
         .inv-no { font-family: 'Courier New', monospace; font-weight: 800; color: #1e293b; }
         .badge { padding: 3px 8px; border-radius: 5px; font-size: 10px; font-weight: 700; background: #f1f5f9; color: #475569; }
 
-        /* ປັບແຕ່ງ Export Section */
+        /* Export Section */
         .export-box { display: flex; gap: 10px; align-items: center; background: white; padding: 12px 18px; border-radius: 12px; margin-bottom: 20px; border: 1px solid #f1f5f9; }
         .export-box input { padding: 6px 10px; border: 1px solid #e2e8f0; border-radius: 6px; font-family: inherit; font-size: 12px; }
         .btn-export { background: var(--primary); color: white; border: none; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-weight: 700; font-size: 12px; display: flex; align-items: center; gap: 8px; transition: 0.3s; font-family: 'Phetsarath', sans-serif; font-size: 14px; font-weight: 600; }
         .btn-export:hover { opacity: 0.9; transform: translateY(-1px); }
+
+        /* ສໍາລັບເຊື່ອງເມນູ */
+        .admin-only { display: none; } 
     </style>
 </head>
 <body>
@@ -59,15 +63,16 @@
 <nav class="sidebar">
     <div class="logo" style="font-family: 'Phetsarath', sans-serif;"><span>⚡</span> mPOS</div>
     
-    <a href="index.html" class="nav-item" style="font-size: 15px;">📊 ໜ້າຫຼັກ (Dashboard)</a> 
     <a href="pos-checkout.html" class="nav-item" style="font-size: 15px;">🛒 ຂາຍສິນຄ້າ</a> 
-    <a href="pos-orders.html" class="nav-item" style="font-size: 15px;">📄 ປະຫວັດການສັ່ງຊື້</a>
-    <a href="pos-inventory.html" class="nav-item active" style="font-size: 15px;">📦 ຄັງສິນຄ້າ</a>
-    <a href="pos-daily-summary.html" class="nav-item" style="font-size: 15px;">📜 ປິດຍອດປະຈຳວັນ</a>
-    <a href="pos-reports.html" class="nav-item" style="font-size: 15px;">📊 ລາຍງານ</a>
     <a href="pos-customers.html" class="nav-item" style="font-size: 15px;">👥 ລູກຄ້າ</a>
+
+    <a href="index.html" class="nav-item admin-only" style="font-size: 15px;">📊 ໜ້າຫຼັກ (Dashboard)</a> 
+    <a href="pos-orders.html" class="nav-item admin-only" style="font-size: 15px;">📄 ປະຫວັດການສັ່ງຊື້</a>
+    <a href="pos-inventory.html" class="nav-item admin-only" style="font-size: 15px;">📦 ຄັງສິນຄ້າ</a>
+    <a href="pos-daily-summary.html" class="nav-item admin-only" style="font-size: 15px;">📜 ປິດຍອດປະຈຳວັນ</a>
+    <a href="pos-reports.html" class="nav-item nav-active admin-only" style="font-size: 15px;">📊 ລາຍງານ</a>
     
-    <div class="user-box" style="padding: 15px; border-top: 1px solid rgba(255,255,255,0.1); margin-top: 10px;">
+    <div class="user-box" style="padding: 15px; border-top: 1px solid rgba(255,255,255,0.1); margin-top: auto;">
         <div id="display-user-name" style="font-weight: 600; color: white; margin-bottom: 15px; font-size: 0.9rem; font-family: 'Phetsarath', sans-serif;">ກຳລັງໂຫລດ...</div>
         <button onclick="handleLogout()" style="background: rgba(239, 68, 68, 0.2); color: #f87171; border: none; width: 100%; text-align: left; padding: 10px; cursor: pointer; border-radius: 8px; font-weight: 600; font-family: 'Phetsarath', sans-serif; font-size: 14px;">
             🚪 ອອກຈາກລະບົບ
@@ -87,22 +92,21 @@
         <span style="font-size: 11px; color: #94a3b8;">ຫາ</span>
         <input type="date" id="export-to">
         <button onclick="exportToExcel()" class="btn-export">
-        <span>📊</span> Export Excel
-            </button>
-        <button onclick="exportProductPerformance()" class="btn-export" style="background: #f59e0b;">
-    <span>🏆</span> Export ສິນຄ້າຂາຍດີ
+            <span>📊</span> Export Excel
         </button>
-        <button onclick="exportLowStock()" class="btn-export" 
-    style="background: var(--danger); font-family: 'Phetsarath', sans-serif; font-size: 14px; font-weight: 600;">
-    <span>⚠️</span> Export ສິນຄ້າໃກ້ໝົດ
+        <button onclick="exportProductPerformance()" class="btn-export" style="background: #f59e0b;">
+            <span>🏆</span> Export ສິນຄ້າຂາຍດີ
+        </button>
+        <button onclick="exportLowStock()" class="btn-export" style="background: var(--danger);">
+            <span>⚠️</span> Export ສິນຄ້າໃກ້ໝົດ
         </button>
     </div>
 
     <div class="stat-grid">
-<div class="stat-card"><small style="font-size: 15px; font-weight: 600;">ລາຍຮັບສຸດທິ</small><b id="rev-net" style="color:var(--primary)">₭0</b></div>
-<div class="stat-card"><small style="font-size: 15px; font-weight: 600;">ສ່ວນຫຼຸດ</small><b id="total-discount" style="color:var(--warning)">₭0</b></div>
-<div class="stat-card"><small style="font-size: 15px; font-weight: 600;">ສະມາຊິກ</small><b id="customer-count" style="color:#3b82f6">0</b></div>
-<div class="stat-card"><small style="font-size: 15px; font-weight: 600;">ສິນຄ້າໃກ້ໝົດ</small><b id="low-stock-count" style="color:var(--danger)">0</b></div>
+        <div class="stat-card"><small style="font-size: 15px; font-weight: 600;">ລາຍຮັບສຸດທິ</small><b id="rev-net" style="color:var(--primary)">₭0</b></div>
+        <div class="stat-card"><small style="font-size: 15px; font-weight: 600;">ສ່ວນຫຼຸດ</small><b id="total-discount" style="color:var(--warning)">₭0</b></div>
+        <div class="stat-card"><small style="font-size: 15px; font-weight: 600;">ສະມາຊິກ</small><b id="customer-count" style="color:#3b82f6">0</b></div>
+        <div class="stat-card"><small style="font-size: 15px; font-weight: 600;">ສິນຄ້າໃກ້ໝົດ</small><b id="low-stock-count" style="color:var(--danger)">0</b></div>
     </div>
 
     <div class="chart-grid">
@@ -147,6 +151,15 @@
 </main>
 
 <script>
+    // --- ລະບົບປ້ອງກັນຄວາມປອດໄພ (SECURITY GUARD) ---
+    (function protectPage() {
+        const role = localStorage.getItem('lsm_role');
+        if (role !== 'GM') {
+            alert("ຂໍໂທດ, ທ່ານບໍ່ມີສິດເຂົ້າເຖິງໜ້າລາຍງານ!");
+            window.location.href = 'pos-checkout.html';
+        }
+    })();
+
     const u = "https://zddelixvencundnkccpq.supabase.co"; 
     const k = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpkZGVsaXh2ZW5jdW5kbmtjY3BxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUxMjQ1MzMsImV4cCI6MjA5MDcwMDUzM30.-RPvOYMLzftubrpJ4KSVrqL2eNaopjty30_TrnkGpBo";
     const _s = supabase.createClient(u, k);
@@ -173,7 +186,6 @@
             document.getElementById('customer-count').innerText = custs ? custs.length : 0;
             document.getElementById('low-stock-count').innerText = prods ? prods.filter(p => Number(p.stock_qty) <= Number(p.min_stock)).length : 0;
 
-            // Render Tables - Enhanced for the 2/3 layout
             document.getElementById('sales-list').innerHTML = completed.slice(0, 10).map(s => `
                 <tr>
                     <td class="inv-no">#${s.id.substring(0,8).toUpperCase()}</td>
@@ -197,15 +209,10 @@
         } catch (e) { console.error("Init Error:", e); }
     }
 
-    // New Function: Export to Excel
     async function exportToExcel() {
         const fromDate = document.getElementById('export-from').value;
         const toDate = document.getElementById('export-to').value;
-
-        if (!fromDate || !toDate) {
-            alert("ກະລຸນາເລືອກຊ່ວງວັນທີກ່ອນ!");
-            return;
-        }
+        if (!fromDate || !toDate) { alert("ກະລຸນາເລືອກຊ່ວງວັນທີກ່ອນ!"); return; }
 
         const { data: sales, error } = await _s
             .from('pos_sales')
@@ -214,10 +221,7 @@
             .lte('created_at', toDate + "T23:59:59")
             .order('created_at', { ascending: true });
 
-        if (error || !sales || sales.length === 0) {
-            alert("ບໍ່ມີຂໍ້ມູນໃນຊ່ວງວັນທີນີ້!");
-            return;
-        }
+        if (error || !sales || sales.length === 0) { alert("ບໍ່ມີຂໍ້ມູນໃນຊ່ວງວັນທີນີ້!"); return; }
 
         const formattedData = sales.map(s => ({
             "ວັນທີ": new Date(s.created_at).toLocaleDateString('lo-LA'),
@@ -232,118 +236,70 @@
         const ws = XLSX.utils.json_to_sheet(formattedData);
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, "Sales Summary");
-
-        // ດາວໂຫລດໄຟລ໌
         XLSX.writeFile(wb, `Sales_Report_${fromDate}_to_${toDate}.xlsx`);
     }
 
     async function exportProductPerformance() {
-    const fromDate = document.getElementById('export-from').value;
-    const toDate = document.getElementById('export-to').value;
+        const fromDate = document.getElementById('export-from').value;
+        const toDate = document.getElementById('export-to').value;
+        if (!fromDate || !toDate) { alert("ກະລຸນາເລືອກຊ່ວງວັນທີກ່ອນ!"); return; }
 
-    if (!fromDate || !toDate) {
-        alert("ກະລຸນາເລືອກຊ່ວງວັນທີກ່ອນ!");
-        return;
-    }
+        const { data: sales, error } = await _s
+            .from('pos_sales')
+            .select('items')
+            .neq('status', 'Refunded')
+            .gte('created_at', fromDate + "T00:00:00")
+            .lte('created_at', toDate + "T23:59:59");
 
-    // 1. ດຶງຂໍ້ມູນການຂາຍທັງໝົດໃນຊ່ວງວັນທີ (ຍົກເວັ້ນບິນທີ່ Refunded)
-    const { data: sales, error } = await _s
-        .from('pos_sales')
-        .select('items')
-        .neq('status', 'Refunded')
-        .gte('created_at', fromDate + "T00:00:00")
-        .lte('created_at', toDate + "T23:59:59");
+        if (error || !sales || sales.length === 0) { alert("ບໍ່ມີຂໍ້ມູນການຂາຍໃນຊ່ວງວັນທີນີ້!"); return; }
 
-    if (error || !sales || sales.length === 0) {
-        alert("ບໍ່ມີຂໍ້ມູນການຂາຍໃນຊ່ວງວັນທີນີ້!");
-        return;
-    }
-
-    // 2. ປະມວນຜົນຂໍ້ມູນ: ລວມຍອດສິນຄ້າແຕ່ລະລາຍການ
-    const productMap = {};
-
-    sales.forEach(bill => {
-        // ແປງຂໍ້ມູນ items ຈາກ String/JSON ໃຫ້ເປັນ Array
-        const items = typeof bill.items === 'string' ? JSON.parse(bill.items) : bill.items;
-        
-        items.forEach(item => {
-            const id = item.id;
-            if (!productMap[id]) {
-                productMap[id] = {
-                    "ບາໂຄດ": item.barcode || '-',
-                    "ຊື່ສິນຄ້າ": item.name,
-                    "ໝວດໝູ່": item.category || 'ທົ່ວໄປ',
-                    "ລາຄາຂາຍ": Number(item.retail_price),
-                    "ຈຳນວນທີ່ຂາຍໄດ້ (Qty)": 0,
-                    "ຍອດຂາຍລວມ (Total)": 0
-                };
-            }
-            productMap[id]["ຈຳນວນທີ່ຂາຍໄດ້ (Qty)"] += Number(item.qty);
-            productMap[id]["ຍອດຂາຍລວມ (Total)"] += (Number(item.qty) * Number(item.retail_price));
+        const productMap = {};
+        sales.forEach(bill => {
+            const items = typeof bill.items === 'string' ? JSON.parse(bill.items) : bill.items;
+            items.forEach(item => {
+                const id = item.id;
+                if (!productMap[id]) {
+                    productMap[id] = {
+                        "ບາໂຄດ": item.barcode || '-',
+                        "ຊື່ສິນຄ້າ": item.name,
+                        "ໝວດໝູ່": item.category || 'ທົ່ວໄປ',
+                        "ລາຄາຂາຍ": Number(item.retail_price),
+                        "ຈຳນວນທີ່ຂາຍໄດ້ (Qty)": 0,
+                        "ຍອດຂາຍລວມ (Total)": 0
+                    };
+                }
+                productMap[id]["ຈຳນວນທີ່ຂາຍໄດ້ (Qty)"] += Number(item.qty);
+                productMap[id]["ຍອດຂາຍລວມ (Total)"] += (Number(item.qty) * Number(item.retail_price));
+            });
         });
-    });
 
-    // 3. ປ່ຽນເປັນ Array ແລະ ລຽງລໍາດັບຈາກ ຂາຍດີທີ່ສຸດ ໄປຫາ ໜ້ອຍສຸດ
-    const finalData = Object.values(productMap).sort((a, b) => b["ຈຳນວນທີ່ຂາຍໄດ້ (Qty)"] - a["ຈຳນວນທີ່ຂາຍໄດ້ (Qty)"]);
-
-    // 4. ສ້າງ Excel
-    const ws = XLSX.utils.json_to_sheet(finalData);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Product Performance");
-
-    // ປັບຄວາມກວ້າງ Column
-    ws['!cols'] = [{wch: 15}, {wch: 30}, {wch: 15}, {wch: 12}, {wch: 20}, {wch: 20}];
-
-    // 5. ດາວໂຫລດໄຟລ໌
-    XLSX.writeFile(wb, `Product_Performance_${fromDate}_to_${toDate}.xlsx`);
-}
-
-async function exportLowStock() {
-    // 1. ດຶງຂໍ້ມູນສິນຄ້າທັງໝົດ
-    const { data: products, error } = await _s
-        .from('pos_products')
-        .select('barcode, name, category, stock_qty, min_stock, retail_price')
-        .order('category', { ascending: true });
-
-    if (error || !products) {
-        alert("ເກີດຂໍ້ຜິດພາດໃນການດຶງຂໍ້ມູນສິນຄ້າ!");
-        return;
+        const finalData = Object.values(productMap).sort((a, b) => b["ຈຳນວນທີ່ຂາຍໄດ້ (Qty)"] - a["ຈຳນວນທີ່ຂາຍໄດ້ (Qty)"]);
+        const ws = XLSX.utils.json_to_sheet(finalData);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Product Performance");
+        XLSX.writeFile(wb, `Product_Performance_${fromDate}_to_${toDate}.xlsx`);
     }
 
-    // 2. ກັ່ນຕອງເອົາສະເພາະສິນຄ້າທີ່ stock_qty ນ້ອຍກວ່າ ຫຼື ເທົ່າກັບ min_stock
-    const lowStockItems = products.filter(p => Number(p.stock_qty) <= Number(p.min_stock));
-
-    if (lowStockItems.length === 0) {
-        alert("ຍິນດີດ້ວຍ! ບໍ່ມີສິນຄ້າໃກ້ໝົດສາງໃນເວລານີ້.");
-        return;
+    async function exportLowStock() {
+        const { data: products, error } = await _s.from('pos_products').select('barcode, name, category, stock_qty, min_stock, retail_price');
+        if (error || !products) { alert("ເກີດຂໍ້ຜິດພາດ!"); return; }
+        const lowStockItems = products.filter(p => Number(p.stock_qty) <= Number(p.min_stock));
+        if (lowStockItems.length === 0) { alert("ບໍ່ມີສິນຄ້າໃກ້ໝົດສາງ!"); return; }
+        const excelData = lowStockItems.map(p => ({
+            "ບາໂຄດ": p.barcode || '-',
+            "ຊື່ສິນຄ້າ": p.name,
+            "ໝວດໝູ່": p.category || 'ທົ່ວໄປ',
+            "ຈຳນວນຄົງເຫຼືອ": Number(p.stock_qty),
+            "ຈຳນວນຕໍ່າສຸດ Min Stock": Number(p.min_stock),
+            "ສະຖານະ": Number(p.stock_qty) <= 0 ? "❌ ເຄື່ອງໝົດ" : "⚠️ ໃກ້ໝົດສາງ",
+            "ລາຄາຂາຍ": Number(p.retail_price)
+        }));
+        const ws = XLSX.utils.json_to_sheet(excelData);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Low Stock Alert");
+        XLSX.writeFile(wb, `Low_Stock_Report.xlsx`);
     }
 
-    // 3. ຈັດຮູບແບບຂໍ້ມູນສຳລັບ Excel
-    const excelData = lowStockItems.map(p => ({
-        "ບາໂຄດ": p.barcode || '-',
-        "ຊື່ສິນຄ້າ": p.name,
-        "ໝວດໝູ່": p.category || 'ທົ່ວໄປ',
-        "ຈຳນວນຄົງເຫຼືອ": Number(p.stock_qty),
-        "ຈຳນວນຕໍ່າສຸດ Min Stock": Number(p.min_stock),
-        "ສະຖານະ": Number(p.stock_qty) <= 0 ? "❌ ເຄື່ອງໝົດ" : "⚠️ ໃກ້ໝົດສາງ",
-        "ລາຄາຂາຍ": Number(p.retail_price)
-    }));
-
-    // 4. ສ້າງ Excel Workbook
-    const ws = XLSX.utils.json_to_sheet(excelData);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Low Stock Alert");
-
-    // ປັບຄວາມກວ້າງ Column ໃຫ້ອ່ານງ່າຍ
-    ws['!cols'] = [
-        {wch: 15}, {wch: 30}, {wch: 15}, {wch: 15}, {wch: 20}, {wch: 15}, {wch: 12}
-    ];
-
-    // 5. ດາວໂຫລດໄຟລ໌
-    const today = new Date().toISOString().split('T')[0];
-    XLSX.writeFile(wb, `Low_Stock_Report_${today}.xlsx`);
-}    
-    
     async function renderSalesChart() {
         const { data: trend } = await _s.rpc('get_sales_by_payment_7days');
         if (!trend) return;
@@ -353,14 +309,11 @@ async function exportLowStock() {
         if(chartS) chartS.destroy();
         chartS = new Chart(document.getElementById('salesChart').getContext('2d'), {
             type: 'line',
-            data: {
-                labels,
-                datasets: [
-                    { label: 'QR Code', data: qrData, borderColor: '#3b82f6', tension: 0.4, fill: true, backgroundColor: 'rgba(59, 130, 246, 0.05)' },
-                    { label: 'Cash', data: cashData, borderColor: '#10b981', tension: 0.4, fill: true, backgroundColor: 'rgba(16, 185, 129, 0.05)' }
-                ]
-            },
-            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'top', labels: { boxWidth: 10, font: { size: 10 } } } } }
+            data: { labels, datasets: [
+                { label: 'QR Code', data: qrData, borderColor: '#3b82f6', tension: 0.4, fill: true, backgroundColor: 'rgba(59, 130, 246, 0.05)' },
+                { label: 'Cash', data: cashData, borderColor: '#10b981', tension: 0.4, fill: true, backgroundColor: 'rgba(16, 185, 129, 0.05)' }
+            ]},
+            options: { responsive: true, maintainAspectRatio: false }
         });
     }
 
@@ -374,18 +327,32 @@ async function exportLowStock() {
                 labels: top.slice(0, 10).map(t => t.product_name.substring(0, 15)),
                 datasets: [{ label: 'ຈຳນວນຂາຍ', data: top.slice(0, 10).map(t => t.total_qty), backgroundColor: '#f59e0b', borderRadius: 4 }]
             },
-            options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+            options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false }
         });
     }
 
     function handleLogout() { localStorage.clear(); window.location.href = 'login.html'; }
+
+    // --- INITIALIZE UI & PERMISSIONS ---
     document.addEventListener('DOMContentLoaded', () => {
-        // Set default date to today
+        const role = localStorage.getItem('lsm_role');
+        const userName = localStorage.getItem('lsm_user_name');
+
+        // 1. ສະແດງຊື່ຜູ້ໃຊ້
+        document.getElementById('display-user-name').innerText = userName || 'Admin';
+        document.getElementById('user-display').innerText = "👤 " + (userName || 'Admin');
+
+        // 2. ຈັດການ Sidebar ຕາມ Role
+        if (role === 'GM') {
+            document.querySelectorAll('.admin-only').forEach(el => {
+                el.style.display = 'flex'; // ເປີດເມນູໃຫ້ GM
+            });
+        }
+
+        // 3. ຕັ້ງວັນທີ Default ແລະ ໂຫຼດຂໍ້ມູນ
         const today = new Date().toISOString().split('T')[0];
         document.getElementById('export-from').value = today;
         document.getElementById('export-to').value = today;
-
-        document.getElementById('user-display').innerText = "👤 " + (localStorage.getItem('lsm_user_name') || 'Admin');
         init();
     });
 </script>
