@@ -315,8 +315,8 @@ async function exportLowStock() {
         "ບາໂຄດ": p.barcode || '-',
         "ຊື່ສິນຄ້າ": p.name,
         "ໝວດໝູ່": p.category || 'ທົ່ວໄປ',
-        "ຈຳນວນຄັງເຫຼືອ": Number(p.stock_qty),
-        "ຈຳນວນຕໍ່າສຸດທີ່ຕ້ອງມີ": Number(p.min_stock),
+        "ຈຳນວນຄົງເຫຼືອ": Number(p.stock_qty),
+        "ຈຳນວນຕໍ່າສຸດ Min Stock": Number(p.min_stock),
         "ສະຖານະ": Number(p.stock_qty) <= 0 ? "❌ ເຄື່ອງໝົດ" : "⚠️ ໃກ້ໝົດສາງ",
         "ລາຄາຂາຍ": Number(p.retail_price)
     }));
