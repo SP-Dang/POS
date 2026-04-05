@@ -2,209 +2,176 @@
 <html lang="lo">
 <head>
     <meta charset="UTF-8">
-    <title>LSM POS | ບົດລາຍງານ ແລະ ການແຈ້ງເຕືອນ</title>
+    <title>LSM POS | Dashboard & Reports</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Phetsarath&family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
     <style>
-        :root { --primary: #10b981; --danger: #ef4444; --sidebar: #0f172a; --bg: #f8fafc; --warning: #f59e0b; --info: #3b82f6; --lao-font: 'Phetsarath', sans-serif; }
+        :root { --primary: #10b981; --danger: #ef4444; --sidebar: #0f172a; --bg: #f8fafc; --lao-font: 'Phetsarath', sans-serif; }
+        * { box-sizing: border-box; }
         body { margin: 0; display: flex; background: var(--bg); font-family: 'Plus Jakarta Sans', var(--lao-font); height: 100vh; overflow: hidden; }
-        .sidebar { width: 260px; background: var(--sidebar); color: white; padding: 30px 20px; display: flex; flex-direction: column; }
-        .logo { font-weight: 800; font-size: 22px; color: var(--primary); margin-bottom: 40px; display: flex; align-items: center; gap: 10px; }
-        .main { flex: 1; padding: 40px; overflow-y: auto; }
-        .stat-card { background: white; padding: 25px; border-radius: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.02); margin-bottom: 30px; }
-        .nav-item { padding: 14px 18px; border-radius: 12px; color: #94a3b8; text-decoration: none; display: flex; align-items: center; gap: 12px; margin-bottom: 8px; font-weight: 600; font-size: 14px; }
-        .nav-item:hover { background: rgba(255,255,255,0.05); color: white; }
-        .nav-active { background: var(--primary); color: white; box-shadow: 0 10px 15px -3px rgba(16, 185, 129, 0.3); }
         
-        /* Dashboard Grid */
-        .chart-grid { display: grid; grid-template-columns: 1.5fr 1fr; gap: 20px; margin-bottom: 30px; }
-        .chart-container { background: white; padding: 20px; border-radius: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.02); height: 350px; }
+        /* Sidebar */
+        .sidebar { width: 260px; background: var(--sidebar); color: white; padding: 30px 20px; display: flex; flex-direction: column; }
+        .nav-item { padding: 12px 15px; border-radius: 10px; color: #94a3b8; text-decoration: none; display: flex; align-items: center; gap: 10px; margin-bottom: 5px; font-weight: 600; font-size: 13px; }
+        .nav-active { background: var(--primary); color: white; }
 
-        table { width: 100%; border-collapse: collapse; background: white; border-radius: 15px; overflow: hidden; }
-        th { background: #f8fafc; padding: 15px; text-align: left; font-size: 11px; color: #64748b; text-transform: uppercase; }
-        td { padding: 15px; border-bottom: 1px solid #f1f5f9; font-size: 14px; }
-        .badge-red { background: #fee2e2; color: #991b1b; padding: 4px 10px; border-radius: 20px; font-size: 10px; font-weight: 800; }
-        .badge-refund { background: #fef3c7; color: #92400e; padding: 4px 10px; border-radius: 20px; font-size: 10px; font-weight: 800; }
+        .main { flex: 1; padding: 25px; overflow-y: auto; }
+        
+        /* Chart Layout - ປັບຂະໜາດນ້ອຍລົງ */
+        .chart-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px; }
+        .chart-card { background: white; padding: 15px; border-radius: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.02); height: 220px; } /* ຫຼຸດຄວາມສູງລົງອີກ */
+        
+        .stat-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; margin-bottom: 20px; }
+        .stat-card { background: white; padding: 15px; border-radius: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
+        
+        table { width: 100%; border-collapse: collapse; background: white; border-radius: 12px; overflow: hidden; font-size: 13px; }
+        th { background: #f8fafc; padding: 10px; text-align: left; color: #64748b; font-size: 11px; text-transform: uppercase; }
+        td { padding: 10px; border-bottom: 1px solid #f1f5f9; }
+        
+        .badge-refund { background: #fee2e2; color: #b91c1c; padding: 2px 6px; border-radius: 8px; font-size: 10px; }
     </style>
 </head>
 <body>
-   <nav class="sidebar">
-    <div class="logo"><span>⚡</span> mPOS</div>
+
+<nav class="sidebar">
+    <div style="font-weight:800; font-size:20px; color:var(--primary); margin-bottom:30px;">⚡ LSM POS</div>
     <a href="pos-checkout.html" class="nav-item">🛒 ຂາຍສິນຄ້າ</a> 
     <a href="pos-orders.html" class="nav-item">📄 ປະຫວັດການຂາຍ</a>
     <a href="pos-inventory.html" class="nav-item">📦 ຄັງສິນຄ້າ</a>
     <a href="pos-reports.html" class="nav-item nav-active">📊 ບົດລາຍງານ</a>
-    
-    <div class="user-box" style="padding: 15px; border-top: 1px solid rgba(255,255,255,0.1); margin-top: auto;">
-        <div id="display-user-name" style="font-weight: 600; color: white; margin-bottom: 15px; font-size: 0.9rem;">ກຳລັງໂຫຼດ...</div>
-        <button onclick="handleLogout()" style="background: rgba(239, 68, 68, 0.2); color: #f87171; border: none; width: 100%; text-align: left; padding: 10px; cursor: pointer; border-radius: 8px; font-weight: 600;">🚪 ອອກຈາກລະບົບ</button>
+    <div style="margin-top:auto; padding-top:20px; border-top:1px solid rgba(255,255,255,0.1);">
+        <div id="user-display" style="font-size:12px; color:#94a3b8; margin-bottom:10px;"></div>
+        <button onclick="handleLogout()" style="background:none; border:none; color:#f87171; cursor:pointer; font-size:13px;">🚪 ອອກຈາກລະບົບ</button>
     </div>
 </nav>
 
-    <main class="main">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 20px;">
-            <h1>ບົດລາຍງານການຂາຍ</h1>
-            <button onclick="init()" style="padding:10px 20px; border-radius:10px; border:none; cursor:pointer; background:#fff; font-weight:600; border:1px solid #e2e8f0;">🔄 ໂຫຼດຂໍ້ມູນໃໝ່</button>
+<main class="main">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+        <h2 style="margin:0;">Dashboard ສັງເຂບ</h2>
+        <button onclick="init()" style="padding:6px 12px; border-radius:6px; border:1px solid #ddd; background:#fff; cursor:pointer; font-size:12px;">🔄 Refresh</button>
+    </div>
+
+    <div class="chart-grid">
+        <div class="chart-card"><canvas id="salesChart"></canvas></div>
+        <div class="chart-card"><canvas id="topChart"></canvas></div>
+    </div>
+
+    <div class="stat-grid">
+        <div class="stat-card">
+            <small style="color:#64748b;">ລາຍຮັບສຸດທິ</small>
+            <div id="rev-net" style="font-size:24px; font-weight:800; color:var(--primary);">₭0</div>
         </div>
-
-        <div class="chart-grid">
-            <div class="chart-container">
-                <h3 style="margin-top:0; font-size: 16px;">📈 ຍອດຂາຍ 7 ວັນຍ້ອນຫຼັງ (ແຍກຕາມການຊຳລະ)</h3>
-                <canvas id="salesChart"></canvas>
-            </div>
-            <div class="chart-container">
-                <h3 style="margin-top:0; font-size: 16px;">🏆 Top 10 ສິນຄ້າຂາຍດີ</h3>
-                <canvas id="topProductsChart"></canvas>
-            </div>
+        <div class="stat-card">
+            <small style="color:#64748b;">ສ່ວນຫຼຸດລວມ</small>
+            <div id="total-discount" style="font-size:24px; font-weight:800; color:var(--warning);">₭0</div>
         </div>
-
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
-            <div class="stat-card">
-                <span style="color:#64748b; font-weight:600;">ລາຍຮັບສຸດທິທັງໝົດ</span>
-                <div id="today-revenue" style="font-size:36px; font-weight:800; color:var(--primary); margin:10px 0;">₭0</div>
-                <span id="sale-count" style="font-size:12px; color:#94a3b8;">0 ລາຍການທີ່ສົມບູນ</span>
-            </div>
-
-            <div class="stat-card" style="border-left: 6px solid var(--danger);">
-                <h3 style="margin:0 0 15px 0; color:var(--danger)">⚠️ ສິນຄ້າໃກ້ໝົດ (Low Stock)</h3>
-                <table style="font-size: 12px;">
-                    <tbody id="low-stock-list"></tbody>
-                </table>
-            </div>
+        <div class="stat-card" style="border-left: 4px solid var(--danger);">
+            <small style="color:var(--danger); font-weight:bold;">⚠️ ສິນຄ້າໃກ້ໝົດ</small>
+            <div id="low-stock-count" style="font-size:24px; font-weight:800;">0</div>
         </div>
+    </div>
 
-        <h2 style="margin-top:40px; color:var(--warning)">📋 ລາຍການສົ່ງສິນຄ້າຄືນ (Refunded Logs)</h2>
-        <div class="stat-card" style="border-left: 6px solid var(--warning); padding:0;">
-            <table>
-                <thead>
-                    <tr><th>ຊື່ພະນັກງານ</th><th>ຈຳນວນຄືນ</th><th>ມູນຄ່າລວມທີ່ຄືນ</th></tr>
-                </thead>
-                <tbody id="staff-return-list"></tbody>
-            </table>
-        </div>
-    </main>
-
-    <script>
-        const u = "https://zddelixvencundnkccpq.supabase.co"; 
-        const k = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpkZGVsaXh2ZW5jdW5kbmtjY3BxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUxMjQ1MzMsImV4cCI6MjA5MDcwMDUzM30.-RPvOYMLzftubrpJ4KSVrqL2eNaopjty30_TrnkGpBo";
-        const _s = supabase.createClient(u, k);
-        const formatLAK = (n) => new Intl.NumberFormat('lo-LA', { style: 'currency', currency: 'LAK', maximumFractionDigits: 0 }).format(n);
-
-        let salesChart, topChart;
-
-        async function init() {
-            try {
-                // 1. ດຶງຂໍ້ມູນລາຍການຂາຍທັງໝົດ
-                const { data: sales, error: salesError } = await _s.from('pos_sales').select('*').order('created_at', { ascending: false });
-                if (salesError) throw salesError;
-
-                renderSalesStats(sales);
-                renderLowStock();
-                
-                // 2. ດຶງຂໍ້ມູນ Dashboard ຜ່ານ RPC
-                renderCharts();
-
-            } catch (err) {
-                console.error("Data load error:", err.message);
-            }
-        }
-
-        function renderSalesStats(sales) {
-            let netTotal = 0;
-            let validTransactionCount = 0;
-            const staffStats = {};
-
-            sales.forEach(s => {
-                const isRefunded = (s.status || "").toUpperCase() === 'REFUNDED';
-                if (!isRefunded) {
-                    netTotal += parseFloat(s.total_amount);
-                    validTransactionCount++;
-                } else {
-                    const staff = s.return_processed_by || "Unknown";
-                    if (!staffStats[staff]) staffStats[staff] = { count: 0, amount: 0 };
-                    staffStats[staff].count += 1;
-                    staffStats[staff].amount += parseFloat(s.total_amount);
-                }
-            });
-
-            document.getElementById('today-revenue').innerText = formatLAK(netTotal);
-            document.getElementById('sale-count').innerText = validTransactionCount + " ລາຍການທີ່ສົມບູນ";
-
-            const staffNames = Object.keys(staffStats);
-            document.getElementById('staff-return-list').innerHTML = staffNames.length ? staffNames.map(name => `
-                <tr><td><b>${name}</b></td><td>${staffStats[name].count} ລາຍການ</td><td style="color:var(--danger); font-weight:800;">${formatLAK(staffStats[name].amount)}</td></tr>
-            `).join('') : '<tr><td colspan="3" style="text-align:center; padding:20px; color:#94a3b8;">ບໍ່ມີລາຍການຄືນສິນຄ້າ</td></tr>';
-        }
-
-        async function renderLowStock() {
-            const { data: prods } = await _s.from('pos_products').select('*');
-            const low = prods.filter(p => p.stock_qty <= p.min_stock);
-            document.getElementById('low-stock-list').innerHTML = low.length ? low.slice(0, 5).map(p => `
+    <h3 style="font-size:16px; margin-bottom:10px;">📄 ລາຍການທຸລະກຳລ້າສຸດ</h3>
+    <div style="background:white; border-radius:15px; box-shadow:0 2px 4px rgba(0,0,0,0.02); overflow:hidden;">
+        <table>
+            <thead>
                 <tr>
-                    <td><b>${p.name}</b></td>
-                    <td style="color:var(--danger); font-weight:800;">${p.stock_qty} ${p.unit || 'pcs'}</td>
-                    <td><span class="badge-red">ສັ່ງຕື່ມ</span></td>
+                    <th>ວັນທີ/ເວລາ</th>
+                    <th>ເບີໂທລູກຄ້າ</th>
+                    <th>ການຊຳລະ</th>
+                    <th>ສະຖານະ</th>
+                    <th style="text-align:right;">ຍອດລວມ</th>
                 </tr>
-            `).join('') : '<tr><td colspan="3" style="text-align:center; padding:10px;">✅ ສະຕ໋ອກປົກກະຕິ</td></tr>';
+            </thead>
+            <tbody id="sales-list"></tbody>
+        </table>
+    </div>
+</main>
+
+<script>
+    const u = "https://zddelixvencundnkccpq.supabase.co"; 
+    const k = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpkZGVsaXh2ZW5jdW5kbmtjY3BxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUxMjQ1MzMsImV4cCI6MjA5MDcwMDUzM30.-RPvOYMLzftubrpJ4KSVrqL2eNaopjty30_TrnkGpBo";
+    const _s = supabase.createClient(u, k);
+    const fmt = (n) => new Intl.NumberFormat('lo-LA').format(n);
+
+    let chartS, chartT;
+
+    async function init() {
+        try {
+            // 1. Fetch Sales List
+            const { data: sales, error } = await _s.from('pos_sales').select('*').order('created_at', { ascending: false }).limit(20);
+            if (error) throw error;
+
+            let netTotal = 0, discountTotal = 0;
+            document.getElementById('sales-list').innerHTML = sales.map(s => {
+                const isRef = s.status === 'Refunded';
+                if(!isRef) { 
+                    netTotal += (s.total_amount || 0); 
+                    discountTotal += (s.discount_amount || 0);
+                }
+                const date = new Date(s.created_at).toLocaleString('lo-LA', { hour:'2-digit', minute:'2-digit', day:'numeric', month:'short' });
+                return `<tr>
+                    <td>${date}</td>
+                    <td>${s.customer_phone || '-'}</td>
+                    <td><b>${s.payment_method}</b></td>
+                    <td>${isRef ? '<span class="badge-refund">ຄືນສິນຄ້າ</span>' : '<span style="color:var(--primary)">ສຳເລັດ</span>'}</td>
+                    <td style="text-align:right; font-weight:700; ${isRef ? 'text-decoration:line-through; color:#94a3b8;' : ''}">${fmt(s.total_amount)}</td>
+                </tr>`;
+            }).join('');
+
+            document.getElementById('rev-net').innerText = '₭' + fmt(netTotal);
+            document.getElementById('total-discount').innerText = '₭' + fmt(discountTotal);
+
+            // 2. Low Stock Check
+            const { data: prods } = await _s.from('pos_products').select('id').lte('stock_qty', 'min_stock');
+            document.getElementById('low-stock-count').innerText = prods ? prods.length : 0;
+
+            // 3. Render Charts
+            updateCharts();
+
+        } catch (e) { console.error(e); }
+    }
+
+    async function updateCharts() {
+        // Sales Trend (7 Days)
+        const { data: trend } = await _s.rpc('get_sales_by_payment_7days');
+        if (trend) {
+            const labels = [...new Set(trend.map(t => t.sale_date.split('-').slice(1).join('/')))];
+            const cash = labels.map(l => trend.find(t => t.sale_date.includes(l.replace('/','-')) && t.payment_method === 'Cash')?.total_amount || 0);
+            const qr = labels.map(l => trend.find(t => t.sale_date.includes(l.replace('/','-')) && t.payment_method === 'QR Code')?.total_amount || 0);
+
+            if(chartS) chartS.destroy();
+            chartS = new Chart(document.getElementById('salesChart'), {
+                type: 'line',
+                data: { labels, datasets: [
+                    { label: 'QR', data: qr, borderColor: '#3b82f6', tension: 0.4, pointRadius: 2 },
+                    { label: 'Cash', data: cash, borderColor: '#10b981', tension: 0.4, pointRadius: 2 }
+                ]},
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { boxWidth: 8, font: { size: 10 } } } } }
+            });
         }
 
-        async function renderCharts() {
-            // --- Chart 1: 7 Days Sales ---
-            const { data: trend } = await _s.rpc('get_sales_by_payment_7days');
-            if (trend) {
-                const labels = [...new Set(trend.map(t => t.sale_date))];
-                const cashData = labels.map(l => trend.find(t => t.sale_date === l && t.payment_method === 'Cash')?.total_amount || 0);
-                const qrData = labels.map(l => trend.find(t => t.sale_date === l && t.payment_method === 'QR Code')?.total_amount || 0);
-
-                if (salesChart) salesChart.destroy();
-                salesChart = new Chart(document.getElementById('salesChart'), {
-                    type: 'line',
-                    data: {
-                        labels: labels.map(d => new Date(d).toLocaleDateString('lo-LA', {day:'numeric', month:'short'})),
-                        datasets: [
-                            { label: 'QR Code', data: qrData, borderColor: '#3b82f6', tension: 0.3, fill: true, backgroundColor: 'rgba(59, 130, 246, 0.1)' },
-                            { label: 'Cash', data: cashData, borderColor: '#10b981', tension: 0.3, fill: true, backgroundColor: 'rgba(16, 185, 129, 0.1)' }
-                        ]
-                    },
-                    options: { responsive: true, maintainAspectRatio: false }
-                });
-            }
-
-            // --- Chart 2: Top 10 Products ---
-            const { data: top } = await _s.rpc('get_top_10_products');
-            if (top) {
-                if (topChart) topChart.destroy();
-                topChart = new Chart(document.getElementById('topProductsChart'), {
-                    type: 'bar',
-                    data: {
-                        labels: top.map(t => t.product_name),
-                        datasets: [{ label: 'ຈຳນວນທີ່ຂາຍໄດ້', data: top.map(t => t.total_qty), backgroundColor: '#f59e0b', borderRadius: 8 }]
-                    },
-                    options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false }
-                });
-            }
+        // Top 10 Products
+        const { data: top } = await _s.rpc('get_top_10_products');
+        if (top && top.length > 0) {
+            if(chartT) chartT.destroy();
+            chartT = new Chart(document.getElementById('topChart'), {
+                type: 'bar',
+                data: {
+                    labels: top.map(t => t.product_name.substring(0, 10)),
+                    datasets: [{ label: 'Qty', data: top.map(t => t.total_qty), backgroundColor: '#f59e0b' }]
+                },
+                options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+            });
         }
+    }
 
-        function initializeUser() {
-            const name = localStorage.getItem('lsm_user_name');
-            const role = localStorage.getItem('lsm_role');
-            if (!name) { window.location.href = 'login.html'; return; } 
-            if (role !== 'GM') { alert("⚠️ Restricted Access."); window.location.href = 'pos-checkout.html'; return; }
-            document.getElementById('display-user-name').innerText = name + " (" + role + ")";
-        }
-
-        function handleLogout() {
-            if (confirm("ອອກຈາກລະບົບ?")) {
-                localStorage.clear();
-                window.location.href = 'login.html';
-            }
-        }
-
-        document.addEventListener('DOMContentLoaded', () => {
-            initializeUser();
-            init();
-        });
-    </script>
+    function handleLogout() { localStorage.clear(); window.location.href = 'login.html'; }
+    document.addEventListener('DOMContentLoaded', () => {
+        document.getElementById('user-display').innerText = "User: " + localStorage.getItem('lsm_user_name');
+        init();
+    });
+</script>
 </body>
 </html>
