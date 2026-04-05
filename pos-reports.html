@@ -112,34 +112,32 @@
     async function init() {
         try {
             // 1. Fetch Sales List
-            const { data: sales, error } = await _s.from('pos_sales').select('*').order('created_at', { ascending: false }).limit(20);
-            if (error) throw error;
+const { data: sales, error } = await _s.from('pos_sales')
+    .select('*')
+    .order('created_at', { ascending: false })
+    .limit(20);
 
-            let netTotal = 0, discountTotal = 0;
-            document.getElementById('sales-list').innerHTML = sales.map(s => {
-                const isRef = s.status === 'Refunded';
-                if(!isRef) { 
-                    netTotal += (Number(s.total_amount) || 0); 
-                    discountTotal += (Number(s.discount_amount) || 0);
-                }
-                
-                // ດຶງ 8 ຕົວເລກທ້າຍຂອງ ID ມາເຮັດເປັນ INV#
-                const invNo = s.id.toString().slice(-8).toUpperCase(); 
-                
-                const date = new Date(s.created_at).toLocaleString('lo-LA', { 
-                    day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' 
-                });
+if (error) throw error;
 
-                return `<tr>
-                    <td class="inv-no">#${invNo}</td>
-                    <td>${date}</td>
-                    <td>${s.customer_phone || '-'}</td>
-                    <td><b>${s.payment_method}</b></td>
-                    <td>${isRef ? '<span class="badge-refund">ຄືນສິນຄ້າ</span>' : '<span style="color:var(--primary); font-weight:bold;">ສຳເລັດ</span>'}</td>
-                    <td style="text-align:right; font-weight:800; ${isRef ? 'text-decoration:line-through; color:#94a3b8;' : ''}">${fmt(s.total_amount)}</td>
-                </tr>`;
-            }).join('');
+document.getElementById('sales-list').innerHTML = sales.map(s => {
+    const isRef = s.status === 'Refunded';
+    
+    // ແກ້ໄຂຈຸດນີ້: ໃຊ້ substring(0, 8) ເພື່ອໃຫ້ໄດ້ "#F23A87CF"
+    const invNo = s.id.toString().substring(0, 8).toUpperCase(); 
+    
+    const date = new Date(s.created_at).toLocaleString('lo-LA', { 
+        day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' 
+    });
 
+    return `<tr>
+        <td class="inv-no" style="color:#1e293b; font-weight:800; font-family: 'Courier New', monospace;">#${invNo}</td>
+        <td>${date}</td>
+        <td>${s.customer_phone || '-'}</td>
+        <td><b>${s.payment_method}</b></td>
+        <td>${isRef ? '<span class="badge-refund">ຄືນສິນຄ້າ</span>' : '<span style="color:var(--primary); font-weight:bold;">ສຳເລັດ</span>'}</td>
+        <td style="text-align:right; font-weight:800; ${isRef ? 'text-decoration:line-through; color:#94a3b8;' : ''}">${fmt(s.total_amount)}</td>
+    </tr>`;
+}).join('');
             document.getElementById('rev-net').innerText = '₭' + fmt(netTotal);
             document.getElementById('total-discount').innerText = '₭' + fmt(discountTotal);
 
