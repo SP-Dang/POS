@@ -124,54 +124,55 @@
         </div>
     `;
 }
-    async function processReturn(orderId) {
+async function processReturn(orderId) {
     if (!confirm("ຢືນຢັນການຄືນສິນຄ້າ? (Confirm Return?)")) return;
 
-    // 1. Get the order details to find items to restock
-    const { data: order, error: fetchErr } = await _s
-        .from('pos_sales')
-        .select('*')
-        .eq('id', orderId)
-        .single();
-    
-    if (fetchErr) return alert("Error fetching order: " + fetchErr.message);
+    // ດຶງປຸ່ມອອກມາເພື່ອປ່ຽນສະຖານະກຳລັງປະມວນຜົນ
+    const btn = document.querySelector('.btn-return');
+    btn.disabled = true;
+    btn.innerText = "ກຳລັງປະມວນຜົນ...";
 
-    // 2. Loop through items and add back to stock
-    for (const item of order.items) {
-        const { data: prod } = await _s
-            .from('pos_products')
-            .select('stock_qty')
-            .eq('barcode', item.barcode)
+    try {
+        // 1. ດຶງຂໍ້ມູນບິນເພື່ອເບິ່ງລາຍການສິນຄ້າ
+        const { data: order, error: fetchErr } = await _s
+            .from('pos_sales')
+            .select('*')
+            .eq('id', orderId)
             .single();
-            
-        if (prod) {
-            const newQty = prod.stock_qty + item.qty;
-            await _s.from('pos_products')
-                .update({ stock_qty: newQty })
-                .eq('barcode', item.barcode);
+        
+        if (fetchErr) throw fetchErr;
+
+        // 2. ບວກສະຕັອກຄືນໂດຍໃຊ້ RPC (restock_inventory ທີ່ສ້າງໄວ້ຂ້າງເທິງ)
+        for (const item of order.items) {
+            const { error: rpcErr } = await _s.rpc('restock_inventory', { 
+                p_barcode: item.barcode, 
+                p_qty: item.qty 
+            });
+            if (rpcErr) throw rpcErr;
         }
+
+        // 3. ອັບເດດສະຖານະບິນ ແລະ ຜູ້ບັນທຶກ
+        const staffName = localStorage.getItem('lsm_user_name') || 'Unknown Staff';
+        const { error: updateErr } = await _s
+            .from('pos_sales')
+            .update({ 
+                status: 'Refunded', 
+                return_processed_by: staffName 
+            })
+            .eq('id', orderId);
+
+        if (updateErr) throw updateErr;
+
+        alert(`✅ ສຳເລັດ! ຄືນສິນຄ້າເຂົ້າສະຕັອກຮຽບຮ້ອຍແລ້ວ.`);
+        lookupOrder(); // Refresh ຂໍ້ມູນເພື່ອໂຊສະຖານະໃໝ່
+
+    } catch (err) {
+        console.error("Return Error:", err);
+        alert("ເກີດຂໍ້ຜິດພາດ: " + err.message);
+        btn.disabled = false;
+        btn.innerText = "🔄 ຄືນສິນຄ້າ ແລະ ເພີ່ມສະຕັອກ (Process Return)";
     }
-
-   // 3. NEW: Update status AND "Stamp" the staff name who processed the return
-    const staffName = localStorage.getItem('lsm_user_name') || 'Unknown Staff';
-
-    const { error: updateErr } = await _s
-        .from('pos_sales')
-        .update({ 
-            status: 'Refunded', 
-            return_processed_by: staffName 
-        })
-        .eq('id', orderId);
-
-    if (!updateErr) {
-        alert(`✅ ສຳເລັດ! ສະຖານະປ່ຽນເປັນ 'Refunded' ໂດຍ: ${staffName}`);
-        lookupOrder(); // Refresh the view to show the new status and hide the return button
-    } else {
-        console.error("Update Error:", updateErr);
-        alert("Error updating status: " + updateErr.message);
-    }
-}
-    
+}    
     function handleLogout() {
         localStorage.clear();
         window.location.href = 'login.html';
