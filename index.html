@@ -77,19 +77,27 @@
         #variance-display { padding: 18px; border-radius: 14px; text-align: center; font-weight: 800; font-size: 18px; margin-top: 15px; }
 
         .debug-bar { position: fixed; bottom: 20px; right: 20px; background: #1e293b; color: #10b981; padding: 10px 20px; border-radius: 10px; font-size: 12px; font-family: monospace; z-index: 9999; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
+
+        /* Class ສໍາລັບເຊື່ອງເມນູ */
+        .admin-only { display: none; }
     </style>
 </head>
 <body>
 
 <nav class="sidebar">
     <div class="logo">⚡ LSM POS</div>
-    <a href="index.html" class="nav-item active">📊 Dashboard</a> 
+    
     <a href="pos-checkout.html" class="nav-item">🛒 Checkout</a> 
-    <a href="pos-orders.html" class="nav-item">📄 Order History</a>
-    <a href="pos-inventory.html" class="nav-item">📦 Inventory</a>
+    <a href="pos-customers.html" class="nav-item">👥 Customers</a>
+
+    <a href="index.html" class="nav-item active admin-only">📊 Dashboard</a> 
+    <a href="pos-orders.html" class="nav-item admin-only">📄 Order History</a>
+    <a href="pos-inventory.html" class="nav-item admin-only">📦 Inventory</a>
+    <a href="pos-reports.html" class="nav-item admin-only">📊 Reports</a>
+
     <div style="margin-top: auto; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.1);">
         <div id="user-display" style="font-size: 12px; color: #94a3b8; margin-bottom: 10px; font-weight: 600;">System Admin</div>
-        <button onclick="localStorage.clear(); location.reload()" style="background:none; border:1px solid #ef4444; color:#ef4444; width:100%; padding:12px; border-radius:10px; cursor:pointer; font-weight:700; transition: 0.3s;">Log Out</button>
+        <button onclick="handleLogout()" style="background:none; border:1px solid #ef4444; color:#ef4444; width:100%; padding:12px; border-radius:10px; cursor:pointer; font-weight:700; transition: 0.3s;">Log Out</button>
     </div>
 </nav>
 
@@ -168,7 +176,15 @@
 <div id="debug" class="debug-bar">Initializing Dashboard...</div>
 
 <script>
-    // --- Configuration ---
+    // --- SECURITY GUARD: ດີດ Cashier ອອກທັນທີ ---
+    (function protectPage() {
+        const role = localStorage.getItem('lsm_role');
+        if (role !== 'GM') {
+            alert("ຂໍໂທດ, ທ່ານບໍ່ມີສິດເຂົ້າເຖິງໜ້າ Dashboard!");
+            window.location.href = 'pos-checkout.html';
+        }
+    })();
+
     const u = "https://zddelixvencundnkccpq.supabase.co"; 
     const k = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpkZGVsaXh2ZW5jdW5kbmtjY3BxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUxMjQ1MzMsImV4cCI6MjA5MDcwMDUzM30.-RPvOYMLzftubrpJ4KSVrqL2eNaopjty30_TrnkGpBo";
     const _s = supabase.createClient(u, k);
@@ -177,21 +193,27 @@
     const formatLAK = (v) => new Intl.NumberFormat('lo-LA', { style: 'currency', currency: 'LAK', maximumFractionDigits: 0 }).format(v);
     const log = (m) => document.getElementById('debug').innerText = "Log: " + m;
 
-    // --- Dashboard Initialization ---
     async function init() {
+        const role = localStorage.getItem('lsm_role');
         const name = localStorage.getItem('lsm_user_name') || "Admin";
+        
+        // 1. ສະແດງຊື່ຜູ້ໃຊ້
         document.getElementById('user-display').innerText = "User: " + name;
         document.getElementById('today-date-display').innerText = new Date().toLocaleDateString('lo-LA', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
         
+        // 2. ຈັດການ Sidebar (ສະແດງເມນູສະເພາະ GM)
+        if (role === 'GM') {
+            document.querySelectorAll('.admin-only').forEach(el => el.style.display = 'flex');
+        }
+
         await loadDashboardData();
         await renderChart();
     }
 
     async function loadDashboardData() {
         const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Vientiane' });
-        
         log("Fetching today's sales data...");
-        // Fetch from pos_sales based on your table structure
+        
         const { data: sales, error: salesErr } = await _s.from('pos_sales')
             .select('total_amount, payment_method')
             .gte('created_at', today + 'T00:00:00')
@@ -202,26 +224,17 @@
             stats = sales.reduce((acc, s) => {
                 const amt = parseFloat(s.total_amount) || 0;
                 const method = s.payment_method || "";
-                
                 acc.total += amt;
                 acc.count += 1;
-
-                // Smart Detection Logic based on your actual strings
-                if (method.includes("ເງິນສົດ") || method.includes("Cash")) {
-                    acc.cash += amt;
-                } else {
-                    // This handles both "QR Code" and other transfer methods
-                    acc.transfer += amt;
-                }
+                if (method.includes("ເງິນສົດ") || method.includes("Cash")) acc.cash += amt;
+                else acc.transfer += amt;
                 return acc;
             }, { total: 0, count: 0, cash: 0, transfer: 0 });
 
-            // Update UI
             document.getElementById('stat-sales').innerText = formatLAK(stats.total);
             document.getElementById('stat-count').innerText = stats.count;
         }
 
-        // Fetch Low Stock from pos_products
         const { count, error: stockErr } = await _s.from('pos_products')
             .select('*', { count: 'exact', head: true })
             .filter('stock_qty', 'lte', 'min_stock');
@@ -230,18 +243,13 @@
         log("Dashboard updated.");
     }
 
-    // --- Modal Logic ---
     async function openClosingModal() {
         if (stats.count === 0) return alert("ມື້ນີ້ຍັງບໍ່ທັນມີຍອດຂາຍ, ບໍ່ສາມາດປິດຍອດໄດ້.");
-        
         document.getElementById('modal-sys-total').innerText = formatLAK(stats.total);
         document.getElementById('modal-sys-cash').innerText = formatLAK(stats.cash);
         document.getElementById('modal-sys-trans').innerText = formatLAK(stats.transfer);
-        
-        // QR Code payments are digital, so actual transfer usually matches system
         document.getElementById('input-actual-trans').value = stats.transfer;
         document.getElementById('input-actual-cash').value = "";
-        
         document.getElementById('closing-modal').style.display = 'flex';
         updateVariance();
     }
@@ -252,10 +260,8 @@
         const ac = parseFloat(document.getElementById('input-actual-cash').value) || 0;
         const at = parseFloat(document.getElementById('input-actual-trans').value) || 0;
         const diff = (ac + at) - stats.total;
-        
         const display = document.getElementById('variance-display');
         display.innerText = "ສ່ວນຕ່າງ: " + formatLAK(diff);
-        
         if (diff === 0) { display.style.background = "#ecfdf5"; display.style.color = "#059669"; }
         else if (diff < 0) { display.style.background = "#fef2f2"; display.style.color = "#ef4444"; }
         else { display.style.background = "#eff6ff"; display.style.color = "#2563eb"; }
@@ -265,11 +271,7 @@
         const ac = parseFloat(document.getElementById('input-actual-cash').value) || 0;
         const at = parseFloat(document.getElementById('input-actual-trans').value) || 0;
         const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Vientiane' });
-
-        if (ac === 0 && stats.cash > 0) {
-            if (!confirm("ທ່ານຍັງບໍ່ໄດ້ປ້ອນເງິນສົດ, ຕ້ອງການດຳເນີນການຕໍ່ບໍ່?")) return;
-        }
-
+        if (ac === 0 && stats.cash > 0) { if (!confirm("ທ່ານຍັງບໍ່ໄດ້ປ້ອນເງິນສົດ, ຕ້ອງການດຳເນີນການຕໍ່ບໍ່?")) return; }
         const payload = {
             report_date: today,
             total_orders_count: stats.count,
@@ -281,10 +283,8 @@
             variance: (ac + at) - stats.total,
             closed_by: localStorage.getItem('lsm_user_name') || "Admin"
         };
-
-        log("Submitting report to daily_reports...");
+        log("Submitting report...");
         const { error } = await _s.from('daily_reports').insert([payload]);
-
         if (error) {
             if (error.code === '23505') alert("Error: ມື້ນີ້ທ່ານໄດ້ປິດຍອດໄປແລ້ວ!");
             else alert("Error saving report: " + error.message);
@@ -295,7 +295,6 @@
         }
     }
 
-    // --- Sales Chart Render ---
     async function renderChart() {
         const ctx = document.getElementById('salesChart').getContext('2d');
         new Chart(ctx, {
@@ -305,26 +304,15 @@
                 datasets: [{
                     label: 'Sales (LAK)',
                     data: [1800000, 2500000, 2100000, 3500000, 3200000, 4800000, stats.total],
-                    borderColor: '#10b981',
-                    backgroundColor: 'rgba(16, 185, 129, 0.08)',
-                    fill: true,
-                    tension: 0.4,
-                    pointRadius: 6,
-                    pointBackgroundColor: '#10b981',
-                    pointBorderColor: '#fff',
-                    pointBorderWidth: 3
+                    borderColor: '#10b981', backgroundColor: 'rgba(16, 185, 129, 0.08)',
+                    fill: true, tension: 0.4, pointRadius: 6, pointBackgroundColor: '#10b981', pointBorderColor: '#fff', pointBorderWidth: 3
                 }]
             },
-            options: {
-                responsive: true,
-                plugins: { legend: { display: false } },
-                scales: { 
-                    y: { beginAtZero: true, grid: { color: '#f1f5f9' }, ticks: { font: { size: 10 } } },
-                    x: { grid: { display: false }, ticks: { font: { size: 11, weight: 'bold' } } }
-                }
-            }
+            options: { responsive: true, plugins: { legend: { display: false } } }
         });
     }
+
+    function handleLogout() { localStorage.clear(); window.location.href = 'login.html'; }
 
     document.addEventListener('DOMContentLoaded', init);
 </script>
