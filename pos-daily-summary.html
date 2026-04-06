@@ -40,6 +40,9 @@
         .btn-print { background: #334155; color: white; border: none; padding: 8px 16px; border-radius: 10px; cursor: pointer; font-weight: 700; transition: 0.2s; }
         .btn-print:hover { background: var(--sidebar); transform: translateY(-2px); }
 
+        /* Class ສໍາລັບການຊ່ອນເມນູ */
+        .admin-only { display: none; }
+
         /* Print Formatting for 80mm Thermal Printer */
         @media print {
             body * { visibility: hidden; }
@@ -61,12 +64,15 @@
 
 <nav class="sidebar">
     <div class="logo"><span>⚡</span> mPOS</div>
-    <a href="index.html" class="nav-item">📊 ແຜງຄວບຄຸມ</a> 
-    <a href="pos-daily-summary.html" class="nav-item nav-active">📜 ປະຫວັດປິດຍອດ</a>
-    <a href="pos-reports.html" class="nav-item">📊 ບົດລາຍງານສິນຄ້າ</a>
+    
+    <a href="pos-checkout.html" class="nav-item">🛒 Checkout</a>
+
+    <a href="index.html" class="nav-item admin-only">📊 ແຜງຄວບຄຸມ</a> 
+    <a href="pos-daily-summary.html" class="nav-item nav-active admin-only">📜 ປະຫວັດປິດຍອດ</a>
+    <a href="pos-reports.html" class="nav-item admin-only">📊 ບົດລາຍງານສິນຄ້າ</a>
     
     <div style="margin-top: auto; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.1);">
-        <button onclick="location.href='index.html'" style="background:none; border:1px solid #94a3b8; color:#94a3b8; width:100%; padding:10px; border-radius:8px; cursor:pointer;">⬅️ ກັບຄືນ</button>
+        <button onclick="location.href='pos-checkout.html'" style="background:none; border:1px solid #94a3b8; color:#94a3b8; width:100%; padding:10px; border-radius:8px; cursor:pointer;">⬅️ ກັບຄືນ</button>
     </div>
 </nav>
 
@@ -136,11 +142,31 @@
 </div>
 
 <script>
+    // --- SECURITY GUARD: ດີດ Cashier ອອກທັນທີ ---
+    (function protectPage() {
+        const role = localStorage.getItem('lsm_role');
+        if (role !== 'GM') {
+            alert("ທ່ານບໍ່ມີສິດເຂົ້າເຖິງໜ້າປະຫວັດການປິດຍອດ!");
+            window.location.href = 'pos-checkout.html';
+        }
+    })();
+
     const u = "https://zddelixvencundnkccpq.supabase.co"; 
     const k = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpkZGVsaXh2ZW5jdW5kbmtjY3BxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUxMjQ1MzMsImV4cCI6MjA5MDcwMDUzM30.-RPvOYMLzftubrpJ4KSVrqL2eNaopjty30_TrnkGpBo";
     const _s = supabase.createClient(u, k);
 
     const formatLAK = (v) => new Intl.NumberFormat('lo-LA').format(v) + " ₭";
+
+    async function init() {
+        const role = localStorage.getItem('lsm_role');
+        
+        // ຈັດການ Sidebar ຖ້າເປັນ Admin (GM) ໃຫ້ສະແດງເມນູລັບ
+        if (role === 'GM') {
+            document.querySelectorAll('.admin-only').forEach(el => el.style.display = 'flex');
+        }
+
+        await fetchSummaryData();
+    }
 
     async function fetchSummaryData() {
         const { data, error } = await _s.from('daily_reports')
@@ -173,7 +199,6 @@
     }
 
     function printThermal(r) {
-        // Mapping data to Lao Template
         document.getElementById('rt-date').innerText = "ວັນທີ: " + r.report_date;
         document.getElementById('rt-count').innerText = r.total_orders_count + " ບິນ";
         document.getElementById('rt-sys').innerText = formatLAK(r.system_total_amount);
@@ -184,15 +209,11 @@
 
         const receipt = document.getElementById('thermal-receipt');
         receipt.style.display = 'block';
-        
-        // Trigger Print
         window.print();
-        
-        // Hide again after printing
         receipt.style.display = 'none';
     }
 
-    document.addEventListener('DOMContentLoaded', fetchSummaryData);
+    document.addEventListener('DOMContentLoaded', init);
 </script>
 </body>
 </html>
