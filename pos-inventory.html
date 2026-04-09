@@ -30,6 +30,17 @@
         .main { flex: 1; overflow-y: auto; padding: 40px; }
         .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
         
+        /* Search Box Style */
+        .search-box {
+            position: relative; flex: 1; max-width: 500px;
+        }
+        .search-input {
+            width: 100%; padding: 14px 20px 14px 45px; border-radius: 15px; border: 1px solid #e2e8f0;
+            font-size: 15px; outline: none; transition: 0.3s;
+        }
+        .search-input:focus { border-color: var(--primary); box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.1); }
+        .search-icon { position: absolute; left: 18px; top: 15px; color: var(--text-light); }
+
         .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 25px; }
         .card { 
             background: var(--card); border-radius: 20px; padding: 25px; border: 1px solid rgba(0,0,0,0.04);
@@ -58,7 +69,6 @@
         .btn-edit { flex: 1; background: #f0f4ff; color: #4f46e5; border: none; padding: 10px; border-radius: 10px; font-weight: 700; cursor: pointer; font-family: var(--lao); transition: 0.2s; }
         .btn-delete { background: #fff1f1; color: #ef4444; border: none; padding: 10px 15px; border-radius: 10px; cursor: pointer; }
 
-        /* Modal Styles */
         #edit-modal { 
             display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
             background: rgba(15, 23, 42, 0.6); z-index: 1000; align-items: center; justify-content: center; backdrop-filter: blur(4px);
@@ -78,7 +88,6 @@
         .pulse-red .dot { background: var(--danger); animation: pulse 2s infinite; }
         @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); } 70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); } 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); } }
 
-        /* ສໍາລັບການຊ່ອນເມນູ Admin ຖ້າບັງເອີນຫຼຸດເຂົ້າມາ */
         .admin-link { display: none; }
     </style>
 </head>
@@ -94,7 +103,7 @@
     <a href="pos-daily-summary.html" class="nav-item admin-link" style="font-size: 14px;">📜 ປິດຍອດປະຈຳວັນ</a>
     <a href="pos-reports.html" class="nav-item admin-link" style="font-size: 14px;">📊 ລາຍງານ</a>
     <a href="pos-customers.html" class="nav-item admin-link" style="font-size: 14px;">👥 ລູກຄ້າ</a>
-       
+        
     <div class="user-box" style="padding: 15px; border-top: 1px solid rgba(255,255,255,0.1); margin-top: auto;">
         <div id="display-user-name" style="font-weight: 600; color: white; margin-bottom: 15px; font-size: 0.9rem; font-family: 'Phetsarath', sans-serif;">ກຳລັງໂຫລດ...</div>
         <button onclick="handleLogout()" style="background: rgba(239, 68, 68, 0.2); color: #f87171; border: none; width: 100%; text-align: left; padding: 10px; cursor: pointer; border-radius: 8px; font-weight: 600; font-family: 'Phetsarath', sans-serif; font-size: 14px;">
@@ -109,6 +118,12 @@
             <h1 style="margin:0; font-size: 28px; font-family: var(--lao);">ສາງສິນຄ້າ (Inventory)</h1>
             <p style="color: var(--text-light); margin: 5px 0 0; font-family: var(--lao);">ບໍລິຫານສິນຄ້າຂາຍຍ່ອຍຂອງທ່ານ</p>
         </div>
+
+        <div class="search-box">
+            <span class="search-icon">🔍</span>
+            <input type="text" id="inventory-search" class="search-input" placeholder="ຄົ້ນຫາຊື່ ຫຼື ສະແກນບາໂຄ້ດ..." oninput="filterInventory()">
+        </div>
+
         <div id="pulse-widget" class="status-pulse">
             <div class="dot"></div>
             <span id="pulse-text" style="font-weight: 600; font-size: 14px; font-family: var(--lao);">ລະບົບອອນລາຍ</span>
@@ -162,7 +177,8 @@
     const k = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpkZGVsaXh2ZW5jdW5kbmtjY3BxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUxMjQ1MzMsImV4cCI6MjA5MDcwMDUzM30.-RPvOYMLzftubrpJ4KSVrqL2eNaopjty30_TrnkGpBo";
     const _s = supabase.createClient(u, k);
 
-    // --- SECURITY GUARD ---
+    let allProducts = []; // Variable to store all products for local filtering
+
     function initializeUser() {
         const name = localStorage.getItem('lsm_user_name');
         const role = localStorage.getItem('lsm_role');
@@ -172,14 +188,12 @@
             return; 
         }
 
-        // ກວດສອບສິດ: ຖ້າບໍ່ແມ່ນ GM ໃຫ້ດີດອອກໄປໜ້າຂາຍສິນຄ້າທັນທີ
         if (role !== 'GM') { 
             alert("ທ່ານບໍ່ມີສິດເຂົ້າເຖິງໜ້າຄັງສິນຄ້າ!");
             window.location.href = 'pos-checkout.html'; 
             return; 
         }
 
-        // ຖ້າເປັນ GM ໃຫ້ສະແດງເມນູທັງໝົດ
         document.querySelectorAll('.admin-link').forEach(el => el.style.display = 'flex');
         document.getElementById('display-user-name').innerText = name + " (" + role + ")";
     }
@@ -197,10 +211,16 @@
         const { data, error } = await _s.from('pos_products').select('*').order('name');
         if (error) return log(error.message);
 
+        allProducts = data; // Cache data for searching
+        renderGrid(allProducts);
+    }
+
+    // Function to render the grid (Split from loadInventory to support filtering)
+    function renderGrid(products) {
         const grid = document.getElementById('inventory-grid');
         let lowItems = 0;
         
-        grid.innerHTML = data.map(i => {
+        grid.innerHTML = products.map(i => {
             const isLow = i.stock_qty <= i.min_stock;
             if(isLow) lowItems++;
             return `
@@ -227,6 +247,29 @@
         updatePulse(lowItems);
     }
 
+    // New Function for Real-time Searching/Filtering
+    function filterInventory() {
+        const query = document.getElementById('inventory-search').value.toLowerCase().trim();
+        
+        const filtered = allProducts.filter(p => {
+            return (
+                p.name.toLowerCase().includes(query) || 
+                p.barcode.toLowerCase().includes(query)
+            );
+        });
+
+        renderGrid(filtered);
+
+        // Shortcut: If exact barcode match is found (scanned), optional: highlight or open edit automatically
+        if (query.length > 3) {
+            const exactMatch = allProducts.find(p => p.barcode.toLowerCase() === query);
+            if (exactMatch) {
+                // You can choose to auto-open if you want:
+                // openEditModal(exactMatch.barcode, exactMatch.name, exactMatch.retail_price, exactMatch.stock_qty, exactMatch.min_stock);
+            }
+        }
+    }
+
     function openAddModal() {
         document.getElementById('modal-title').innerText = "ເພີ່ມສິນຄ້າໃໝ່";
         document.getElementById('edit-mode').value = "ADD";
@@ -237,6 +280,7 @@
         document.getElementById('edit-qty').value = "0";
         document.getElementById('edit-min').value = "5";
         document.getElementById('edit-modal').style.display = 'flex';
+        setTimeout(() => document.getElementById('edit-barcode').focus(), 100);
     }
 
     function openEditModal(barcode, name, price, qty, min) {
@@ -276,7 +320,12 @@
         }
 
         if (error) alert("ຜິດພາດ: " + error.message);
-        else { closeModal(); loadInventory(); log("ສຳເລັດ!"); }
+        else { 
+            closeModal(); 
+            loadInventory(); 
+            log("ສຳເລັດ!"); 
+            document.getElementById('inventory-search').value = ""; // Clear search after save
+        }
     }
 
     async function deleteItem(barcode) {
