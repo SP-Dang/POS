@@ -23,7 +23,6 @@
         .order-card { background: white; border-radius: 20px; padding: 25px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); margin-bottom: 20px; }
         .item-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #f1f5f9; }
         
-        /* ຕົບແຕ່ງປຸ່ມ */
         .btn-return { background: #fee2e2; color: #b91c1c; border: none; padding: 12px 20px; border-radius: 8px; font-weight: 700; cursor: pointer; margin-top: 15px; transition: 0.2s; }
         .btn-return:hover { background: #fecaca; }
         
@@ -33,7 +32,6 @@
         .badge { padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 700; }
         .badge-success { background: #dcfce7; color: #166534; }
 
-        /* ສ່ວນຂອງການ Print */
         #print-receipt { display: none; }
         @media print {
             body * { visibility: hidden; }
@@ -47,11 +45,10 @@
 <body>
 
 <nav class="sidebar">
-    <div class="logo"><span>⚡</span> mPOS</div>
-    
+    <div style="font-weight:800; font-size:22px; color:var(--primary); margin-bottom:40px;">⚡ mPOS</div>
     <a href="index.html" class="nav-item">📊 Dashboard</a> 
-    <a href="pos-checkout.html" class="nav-item active">🛒 ຂາຍສິນຄ້າ</a> 
-    <a href="pos-orders.html" class="nav-item">📄 ປະຫວັດການສັ່ງຊື້</a>
+    <a href="pos-checkout.html" class="nav-item">🛒 ຂາຍສິນຄ້າ</a> 
+    <a href="pos-orders.html" class="nav-item nav-active">📄 ປະຫວັດການສັ່ງຊື້</a>
     <a href="pos-inventory.html" class="nav-item">📦 ຄັງສິນຄ້າ</a>
     <a href="pos-daily-summary.html" class="nav-item">📜 ປິດຍອດປະຈຳວັນ</a>
     <a href="pos-reports.html" class="nav-item">📊 ລາຍງານ</a>
@@ -99,7 +96,18 @@
     const k = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpkZGVsaXh2ZW5jdW5kbmtjY3BxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUxMjQ1MzMsImV4cCI6MjA5MDcwMDUzM30.-RPvOYMLzftubrpJ4KSVrqL2eNaopjty30_TrnkGpBo";
     const _s = supabase.createClient(u, k);
 
-    let currentFoundOrder = null; // ເກັບຂໍ້ມູນບິນທີ່ຫາເຫັນໄວ້ໃນຕົວປ່ຽນ Global
+    let currentFoundOrder = null; 
+
+    // Function ຈັດຮູບແບບວັນທີເປັນ dd/mm/yyyy HH:mm
+    function formatDate(dateString) {
+        const d = new Date(dateString);
+        const day = d.getDate().toString().padStart(2, '0');
+        const month = (d.getMonth() + 1).toString().padStart(2, '0');
+        const year = d.getFullYear();
+        const hours = d.getHours().toString().padStart(2, '0');
+        const minutes = d.getMinutes().toString().padStart(2, '0');
+        return `${day}/${month}/${year} ${hours}:${minutes}`;
+    }
 
     document.getElementById('receipt-scan').addEventListener('keypress', (e) => {
         if (e.key === 'Enter') lookupOrder();
@@ -121,7 +129,7 @@
 
         currentFoundOrder = data[0];
         const order = currentFoundOrder;
-        const date = new Date(order.created_at).toLocaleString('lo-LA');
+        const dateStr = formatDate(order.created_at);
         const isRefunded = order.status === 'Refunded';
 
         const statusBadge = isRefunded 
@@ -134,7 +142,7 @@
                     <div>
                         ${statusBadge}
                         <h2 style="margin:10px 0 0 0;">ບິນເລກທີ: #${order.id.substring(0,8).toUpperCase()}</h2>
-                        <small style="color:#64748b;">${date}</small>
+                        <small style="color:#64748b;">${dateStr}</small>
                     </div>
                     <div style="text-align:right">
                         <div style="font-size:24px; font-weight:800; color:var(--primary);">₭${order.total_amount.toLocaleString()}</div>
@@ -155,7 +163,7 @@
                     <button class="btn-print" onclick="reprintReceipt()">🖨️ ພິມໃບບິນຄືນ (Print Receipt)</button>
                     ${!isRefunded ? 
                         `<button id="btn-ret-${order.id}" class="btn-return" onclick="processReturn('${order.id}')">🔄 ຄືນສິນຄ້າ (Return)</button>` : 
-                        `<p style="color:#ef4444; font-weight:bold; margin-left: 15px;">ຄືນສິນຄ້າແລ້ວ</p>`
+                        `<p style="color:#ef4444; font-weight:bold; margin-left: 15px; margin-top: 15px;">ຄືນສິນຄ້າແລ້ວ</p>`
                     }
                 </div>
             </div>
@@ -166,7 +174,7 @@
         if (!currentFoundOrder) return;
         const order = currentFoundOrder;
         const shortID = order.id.substring(0, 8).toUpperCase();
-        const dateStr = new Date(order.created_at).toLocaleString('lo-LA');
+        const dateStr = formatDate(order.created_at);
 
         document.getElementById('receipt-header-info').innerHTML = `ID: #${shortID}<br>Date: ${dateStr}`;
         document.getElementById('receipt-items').innerHTML = order.items.map(i => `
@@ -190,6 +198,7 @@
             if (fErr) throw fErr;
 
             for (const item of order.items) {
+                // ໃຊ້ຄ່າລົບເພື່ອບວກສະຕັອກຄືນ
                 await _s.rpc('deduct_inventory', { p_barcode: item.barcode, p_qty: -item.qty });
             }
 
@@ -201,10 +210,19 @@
         } catch (err) {
             alert("Error: " + err.message);
             btn.disabled = false;
+            btn.innerText = "🔄 ຄືນສິນຄ້າ (Return)";
         }
     }
 
+    function initializeUser() {
+        const name = localStorage.getItem('lsm_user_name');
+        if (!name) window.location.href = 'login.html';
+        document.getElementById('display-user-name').innerText = name;
+    }
+
     function handleLogout() { localStorage.clear(); window.location.href = 'login.html'; }
+
+    document.addEventListener('DOMContentLoaded', initializeUser);
 </script>
 </body>
 </html>
