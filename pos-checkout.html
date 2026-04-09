@@ -304,7 +304,14 @@
 
     function printReceipt(order, total, earned) {
         const shortID = order.id.substring(0, 8).toUpperCase();
-        document.getElementById('receipt-header-info').innerHTML = `ID: #${shortID}<br>Date: ${new Date().toLocaleString()}`;
+        // ສ້າງ Format ວັນທີແບບ dd/mm/yyyy hh:mm:ss
+    const now = new Date();
+    const dateStr = now.getDate().toString().padStart(2, '0') + '/' + 
+                (now.getMonth() + 1).toString().padStart(2, '0') + '/' + 
+                now.getFullYear() + ' ' + 
+                now.toTimeString().split(' ')[0];
+    document.getElementById('receipt-header-info').innerHTML = `ID: #${shortID}<br>Date: ${dateStr}`;
+        
         document.getElementById('receipt-items').innerHTML = cart.map(i => `
             <div class="receipt-row"><span>${i.name} x${i.qty}</span><span>${(i.retail_price * i.qty).toLocaleString()}</span></div>
         `).join('');
