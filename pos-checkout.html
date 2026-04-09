@@ -219,9 +219,9 @@
             const exists = cart.find(i => i.barcode === data.barcode);
             const currentInCart = exists ? exists.qty : 0;
 
-            // ກວດສອບສະຕັອກກ່ອນເພີ່ມ (Out of Stock Feature)
-            if (currentInCart + 1 > data.stock) {
-                alert(`ຂໍອະໄພ! ສິນຄ້ານີ້ເຫຼືອໃນຄັງພຽງແຕ່ ${data.stock} ຊິ້ນ.`);
+            // ເພີ່ມ Logic ກວດສອບ stock_qty
+            if (currentInCart + 1 > data.stock_qty) {
+                alert(`ຂໍອະໄພ! ສິນຄ້ານີ້ເຫຼືອໃນຄັງພຽງແຕ່ ${data.stock_qty} ຊິ້ນ.`);
                 return;
             }
 
@@ -240,7 +240,7 @@
         }
         body.innerHTML = cart.map((item, idx) => `
             <tr>
-                <td><div class="item-name">${item.name}</div><div style="font-size:10px; color:#94a3b8;">${item.barcode} | ຄັງ: ${item.stock}</div></td>
+                <td><div class="item-name">${item.name}</div><div style="font-size:10px; color:#94a3b8;">${item.barcode} | ຄັງ: ${item.stock_qty}</div></td>
                 <td style="text-align:right">${formatLAK(item.retail_price)}</td>
                 <td style="text-align:center;">
                     <button onclick="adjQty(${idx}, -1)" style="padding:2px 8px;">-</button>
@@ -257,8 +257,8 @@
     }
 
     function adjQty(idx, n) { 
-        if (n > 0 && cart[idx].qty + 1 > cart[idx].stock) {
-            alert(`ບໍ່ສາມາດເພີ່ມໄດ້! ສິນຄ້າມີໃນຄັງສູງສຸດພຽງ ${cart[idx].stock} ຊິ້ນ.`);
+        if (n > 0 && cart[idx].qty + 1 > cart[idx].stock_qty) {
+            alert(`ບໍ່ສາມາດເພີ່ມໄດ້! ສິນຄ້າມີໃນຄັງສູງສຸດພຽງ ${cart[idx].stock_qty} ຊິ້ນ.`);
             return;
         }
         cart[idx].qty += n; 
@@ -275,14 +275,13 @@
 
         const btn = document.getElementById('btn-finish');
         btn.disabled = true;
-        btn.innerText = "ກຳລັງກວດສອບສະຕັອກ...";
+        btn.innerText = "ກຳລັງຕັດສະຕັອກ...";
 
         const total = cart.reduce((s, i) => s + (i.retail_price * i.qty), 0);
         const earned = Math.floor(total / 10000);
 
         try {
             // --- 1. DEDUCT INVENTORY (RPC Call) ---
-            // ລະບົບຈະ Error ທັນທີຖ້າ SQL Function ທີ່ທ່ານລັນໄວ້ກວດພົບວ່າ stock < qty
             for (let item of cart) {
                 const { error: rpcErr } = await _s.rpc('deduct_inventory', { 
                     p_barcode: item.barcode, 
@@ -316,8 +315,7 @@
             printReceipt(data[0], total, earned);
 
         } catch (err) {
-            // ແຈ້ງເຕືອນຂໍ້ຜິດພາດ (ເຊັ່ນ: Out of Stock ຈາກ Database)
-            alert("ເກີດຂໍ້ຜິດພາດ: " + (err.message || err.details || "ສິນຄ້າໝົດ ຫຼື ບໍ່ພໍຂາຍ"));
+            alert("ເກີດຂໍ້ຜິດພາດ: " + (err.message || "ສິນຄ້າໝົດ ຫຼື ບໍ່ພໍຂາຍ"));
             btn.disabled = false;
             btn.innerText = "ສຳເລັດການຂາຍ";
         }
