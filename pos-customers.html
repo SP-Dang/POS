@@ -11,6 +11,7 @@
         :root { 
             --primary: #10b981; --sidebar: #0f172a; --bg: #f8fafc; 
             --text: #1e293b; --lao: 'Phetsarath', sans-serif;
+            --danger: #ef4444;
         }
         * { box-sizing: border-box; font-family: 'Plus Jakarta Sans', var(--lao); }
         body { margin: 0; display: flex; background: var(--bg); height: 100vh; overflow: hidden; }
@@ -41,6 +42,14 @@
         td { padding: 16px; border-bottom: 1px solid #f1f5f9; font-size: 14px; }
         
         .point-badge { background: #eff6ff; color: #2563eb; padding: 4px 10px; border-radius: 8px; font-weight: 800; }
+
+        /* Delete Button Style */
+        .btn-delete {
+            background: #fff1f2; color: var(--danger); border: none; padding: 8px 12px; 
+            border-radius: 8px; cursor: pointer; font-size: 12px; font-weight: 600;
+            transition: 0.2s;
+        }
+        .btn-delete:hover { background: var(--danger); color: white; }
     </style>
 </head>
 <body>
@@ -88,6 +97,7 @@
                     <th>ຄະແນນສະສົມ</th>
                     <th>ຍອດຊື້ລວມ</th>
                     <th>ວັນທີລົງທະບຽນ</th>
+                    <th style="text-align:center;">ຈັດການ</th>
                 </tr>
             </thead>
             <tbody id="customer-list">
@@ -117,8 +127,28 @@
                 <td><span class="point-badge">⭐ ${c.points.toLocaleString()}</span></td>
                 <td>${new Intl.NumberFormat('lo-LA').format(c.total_spent)} ₭</td>
                 <td style="color:#94a3b8; font-size:12px;">${new Date(c.created_at).toLocaleDateString('lo-LA')}</td>
+                <td style="text-align:center;">
+                    <button class="btn-delete" onclick="deleteCustomer('${c.phone}', '${c.name.replace(/'/g, "\\'")}')">🗑️ ລຶບ</button>
+                </td>
             </tr>
         `).join('');
+    }
+
+    // ຟັງຊັນລຶບລູກຄ້າ
+    async function deleteCustomer(phone, name) {
+        if (confirm(`ທ່ານແນ່ໃຈບໍ່ວ່າຕ້ອງການລຶບລູກຄ້າ: ${name} (${phone})? \nຂໍ້ມູນຄະແນນ ແລະ ປະຫວັດຈະຖືກລຶບອອກຖາວອນ.`)) {
+            const { error } = await _s
+                .from('pos_customers')
+                .delete()
+                .eq('phone', phone);
+
+            if (error) {
+                alert("ບໍ່ສາມາດລຶບໄດ້: " + error.message);
+            } else {
+                alert("✅ ລຶບຂໍ້ມູນລູກຄ້າສຳເລັດ!");
+                loadCustomers(); // ໂຫຼດລາຍຊື່ໃໝ່
+            }
+        }
     }
 
     // ບັນທຶກລູກຄ້າໃໝ່
@@ -145,7 +175,8 @@
         const rows = document.querySelectorAll('#customer-list tr');
         rows.forEach(row => {
             const phone = row.children[0].innerText.toLowerCase();
-            row.style.display = phone.includes(input) ? '' : 'none';
+            const name = row.children[1].innerText.toLowerCase();
+            row.style.display = (phone.includes(input) || name.includes(input)) ? '' : 'none';
         });
     }
 
