@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <title>LSM POS | Order History & Returns</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Phetsarath&family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
     <style>
         :root { --primary: #10b981; --danger: #ef4444; --sidebar: #0f172a; --bg: #f8fafc; --lao-font: 'Phetsarath', sans-serif; }
@@ -21,11 +22,26 @@
 
         .order-card { background: white; border-radius: 20px; padding: 25px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); margin-bottom: 20px; }
         .item-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #f1f5f9; }
-        .btn-return { background: #fee2e2; color: #b91c1c; border: none; padding: 10px 20px; border-radius: 8px; font-weight: 700; cursor: pointer; margin-top: 15px; }
+        
+        /* ຕົບແຕ່ງປຸ່ມ */
+        .btn-return { background: #fee2e2; color: #b91c1c; border: none; padding: 12px 20px; border-radius: 8px; font-weight: 700; cursor: pointer; margin-top: 15px; transition: 0.2s; }
         .btn-return:hover { background: #fecaca; }
+        
+        .btn-print { background: #e0f2fe; color: #0369a1; border: none; padding: 12px 20px; border-radius: 8px; font-weight: 700; cursor: pointer; margin-top: 15px; margin-right: 10px; transition: 0.2s; }
+        .btn-print:hover { background: #bae6fd; }
         
         .badge { padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 700; }
         .badge-success { background: #dcfce7; color: #166534; }
+
+        /* ສ່ວນຂອງການ Print */
+        #print-receipt { display: none; }
+        @media print {
+            body * { visibility: hidden; }
+            #print-receipt, #print-receipt * { visibility: visible; }
+            #print-receipt { display: block; position: absolute; left: 0; top: 0; width: 58mm; padding: 2mm; font-size: 10px; line-height: 1.4; color: black; }
+            .r-line { border-top: 1px dashed #000; margin: 4px 0; }
+            .receipt-row { display: flex; justify-content: space-between; gap: 5px; margin-bottom: 3px; }
+        }
     </style>
 </head>
 <body>
@@ -43,134 +59,143 @@
 
 <main class="main">
     <h1>ກວດສອບບິນ ແລະ ຄືນສິນຄ້າ</h1>
-    <p style="color:#64748b;">ສະແກນບາໂຄ້ດໃນໃບບິນເພື່ອເບິ່ງລາຍລະອຽດ (Scan receipt barcode to view details)</p>
-
     <div class="search-container">
         <input type="text" id="receipt-scan" class="search-input" placeholder="ສະແກນບາໂຄ້ດໃບບິນຢູ່ບ່ອນນີ້..." autofocus>
         <button onclick="lookupOrder()" style="padding:15px 30px; background:var(--sidebar); color:white; border-radius:12px; border:none; cursor:pointer; font-weight:600;">ຄົ້ນຫາ</button>
     </div>
-
     <div id="order-result"></div>
 </main>
+
+<div id="print-receipt">
+    <div style="text-align:center;">
+        <h3 style="margin:0;">ໃບຮັບເງີນ (Copy)</h3>
+        <p style="margin:2px 0;">mPOS System</p>
+        <p>ຮ້ານ..............ໂທ: 020xxxxxxx</p>
+    </div>
+    <div class="r-line"></div>
+    <div id="receipt-header-info"></div>
+    <div class="r-line"></div>
+    <div id="receipt-items"></div>
+    <div class="r-line"></div>
+    <div id="receipt-totals" style="font-weight:bold;"></div>
+    <div class="r-line"></div>
+    <div style="text-align:center;">
+        <svg id="receipt-barcode"></svg>
+        <p>Thank You!</p>
+    </div>
+</div>
 
 <script>
     const u = "https://zddelixvencundnkccpq.supabase.co"; 
     const k = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpkZGVsaXh2ZW5jdW5kbmtjY3BxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUxMjQ1MzMsImV4cCI6MjA5MDcwMDUzM30.-RPvOYMLzftubrpJ4KSVrqL2eNaopjty30_TrnkGpBo";
     const _s = supabase.createClient(u, k);
 
+    let currentFoundOrder = null; // ເກັບຂໍ້ມູນບິນທີ່ຫາເຫັນໄວ້ໃນຕົວປ່ຽນ Global
+
     document.getElementById('receipt-scan').addEventListener('keypress', (e) => {
         if (e.key === 'Enter') lookupOrder();
     });
 
-    // --- UPDATED LOOKUP FUNCTION ---
+    async function lookupOrder() {
+        const code = document.getElementById('receipt-scan').value.trim();
+        if (!code) return;
 
-// --- 1. ຄົ້ນຫາບິນ (Lookup Order) ---
-async function lookupOrder() {
-    const code = document.getElementById('receipt-scan').value.trim();
-    if (!code) return;
+        const container = document.getElementById('order-result');
+        container.innerHTML = `<p style="text-align:center; padding:20px;">ກຳລັງຄົ້ນຫາ...</p>`;
 
-    const container = document.getElementById('order-result');
-    container.innerHTML = `<p style="text-align:center; padding:20px;">ກຳລັງຄົ້ນຫາ...</p>`;
+        const { data, error } = await _s.rpc('search_sales_by_id', { search_text: code });
 
-    // ເອີ້ນໃຊ້ RPC ທີ່ເຮົາຫາກໍ່ Update ໄປໃນຂັ້ນຕອນທີ 1
-    const { data, error } = await _s.rpc('search_sales_by_id', { search_text: code });
-
-    if (error) {
-        console.error("Database Error:", error);
-        container.innerHTML = `<p style="color:red; text-align:center;">Error: ${error.message}</p>`;
-        return;
-    }
-    
-    if (!data || data.length === 0) {
-        container.innerHTML = `<p style="text-align:center; padding:40px; color:#94a3b8;">❌ ບໍ່ພົບຂໍ້ມູນບິນນີ້ (Receipt not found)</p>`;
-        return;
-    }
-
-    // ເອົາຂໍ້ມູນບິນທຳອິດທີ່ຫາເຫັນ
-    const order = data[0];
-    const date = new Date(order.created_at).toLocaleString('lo-LA');
-    const isRefunded = order.status === 'Refunded';
-
-    const statusBadge = isRefunded 
-        ? `<span class="badge" style="background:#fee2e2; color:#b91c1c;">🔄 ຄືນສິນຄ້າແລ້ວ (Refunded)</span>`
-        : `<span class="badge badge-success">✅ ຊຳລະແລ້ວ (Paid)</span>`;
-
-    container.innerHTML = `
-        <div class="order-card" style="${isRefunded ? 'border: 2px solid #fee2e2; opacity: 0.8;' : ''}">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
-                <div>
-                    ${statusBadge}
-                    <h2 style="margin:10px 0 0 0;">ບິນເລກທີ: #${order.id.substring(0,8).toUpperCase()}</h2>
-                    <small style="color:#64748b;">${date}</small>
-                </div>
-                <div style="text-align:right">
-                    <div style="font-size:24px; font-weight:800; color:${isRefunded ? '#94a3b8' : 'var(--primary)'};">
-                        ₭${order.total_amount.toLocaleString()}
-                    </div>
-                    <small>${order.payment_method}</small>
-                </div>
-            </div>
-
-            <div style="border-top: 1px solid #f1f5f9; padding-top:15px;">
-                <h4 style="margin-bottom:10px;">ລາຍການສິນຄ້າ:</h4>
-                ${order.items.map(item => `
-                    <div class="item-row">
-                        <span>${item.name} <b>x${item.qty}</b></span>
-                        <span>₭${(item.retail_price * item.qty).toLocaleString()}</span>
-                    </div>
-                `).join('')}
-            </div>
-
-            ${!isRefunded ? 
-                `<button id="btn-ret-${order.id}" class="btn-return" onclick="processReturn('${order.id}')">🔄 ຄືນສິນຄ້າ ແລະ ເພີ່ມສະຕັອກ (Process Return)</button>` : 
-                `<p style="color:#ef4444; font-weight:bold; margin-top:15px; text-align:center;">ບິນນີ້ໄດ້ທຳການຄືນສິນຄ້າຮຽບຮ້ອຍແລ້ວ ໂດຍ: ${order.return_processed_by || 'ບໍ່ລະບຸ'}</p>`
-            }
-        </div>
-    `;
-}
-
-// --- 2. ປະມວນຜົນການຄືນສິນຄ້າ (Process Return) ---
-async function processReturn(orderId) {
-    if (!confirm("ຢືນຢັນການຄືນສິນຄ້າ ແລະ ເພີ່ມສະຕັອກຄືນ?")) return;
-
-    const btn = document.getElementById(`btn-ret-${orderId}`);
-    btn.disabled = true;
-    btn.innerText = "ກຳລັງປະມວນຜົນ...";
-
-    try {
-        // 1. ດຶງລາຍການສິນຄ້າຈາກບິນ
-        const { data: order, error: fErr } = await _s.from('pos_sales').select('*').eq('id', orderId).single();
-        if (fErr) throw fErr;
-
-        // 2. ບວກສະຕັອກຄືນ (ໃຊ້ RPC deduct_inventory ແຕ່ສົ່ງຄ່າເປັນ "ຕິດລົບ" ເພື່ອໃຫ້ມັນບວກຄືນ)
-        // ຫຼື ຖ້າທ່ານມີ RPC restock_inventory ທີ່ຂ້າພະເຈົ້າເຄີຍໃຫ້ ກໍໃຊ້ໂຕນັ້ນໄດ້
-        for (const item of order.items) {
-            await _s.rpc('deduct_inventory', { 
-                p_barcode: item.barcode, 
-                p_qty: -item.qty  // ສົ່ງຄ່າລົບ ເພື່ອໃຫ້ stock_qty = stock_qty - (-qty) ເຊິ່ງກໍຄືການບວກ
-            });
+        if (error || !data || data.length === 0) {
+            container.innerHTML = `<p style="text-align:center; padding:40px; color:#94a3b8;">❌ ບໍ່ພົບຂໍ້ມູນບິນນີ້</p>`;
+            return;
         }
 
-        // 3. ອັບເດດ status ບິນ
-        const staffName = localStorage.getItem('lsm_user_name') || 'Unknown';
-        await _s.from('pos_sales').update({ 
-            status: 'Refunded', 
-            return_processed_by: staffName 
-        }).eq('id', orderId);
+        currentFoundOrder = data[0];
+        const order = currentFoundOrder;
+        const date = new Date(order.created_at).toLocaleString('lo-LA');
+        const isRefunded = order.status === 'Refunded';
 
-        alert("✅ ຄືນສິນຄ້າ ແລະ ອັບເດດສະຕັອກສຳເລັດ!");
-        lookupOrder(); // Refresh ໜ້າຈໍ
+        const statusBadge = isRefunded 
+            ? `<span class="badge" style="background:#fee2e2; color:#b91c1c;">🔄 ຄືນສິນຄ້າແລ້ວ</span>`
+            : `<span class="badge badge-success">✅ ຊຳລະແລ້ວ</span>`;
 
-    } catch (err) {
-        alert("Error: " + err.message);
-        btn.disabled = false;
-        btn.innerText = "🔄 ຄືນສິນຄ້າ ແລະ ເພີ່ມສະຕັອກ (Process Return)";
+        container.innerHTML = `
+            <div class="order-card">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                    <div>
+                        ${statusBadge}
+                        <h2 style="margin:10px 0 0 0;">ບິນເລກທີ: #${order.id.substring(0,8).toUpperCase()}</h2>
+                        <small style="color:#64748b;">${date}</small>
+                    </div>
+                    <div style="text-align:right">
+                        <div style="font-size:24px; font-weight:800; color:var(--primary);">₭${order.total_amount.toLocaleString()}</div>
+                        <small>${order.payment_method}</small>
+                    </div>
+                </div>
+
+                <div style="border-top: 1px solid #f1f5f9; padding-top:15px;">
+                    ${order.items.map(item => `
+                        <div class="item-row">
+                            <span>${item.name} <b>x${item.qty}</b></span>
+                            <span>₭${(item.retail_price * item.qty).toLocaleString()}</span>
+                        </div>
+                    `).join('')}
+                </div>
+
+                <div style="margin-top: 20px; display: flex;">
+                    <button class="btn-print" onclick="reprintReceipt()">🖨️ ພິມໃບບິນຄືນ (Print Receipt)</button>
+                    ${!isRefunded ? 
+                        `<button id="btn-ret-${order.id}" class="btn-return" onclick="processReturn('${order.id}')">🔄 ຄືນສິນຄ້າ (Return)</button>` : 
+                        `<p style="color:#ef4444; font-weight:bold; margin-left: 15px;">ຄືນສິນຄ້າແລ້ວ</p>`
+                    }
+                </div>
+            </div>
+        `;
     }
-}    
-    function handleLogout() {
-        localStorage.clear();
-        window.location.href = 'login.html';
+
+    function reprintReceipt() {
+        if (!currentFoundOrder) return;
+        const order = currentFoundOrder;
+        const shortID = order.id.substring(0, 8).toUpperCase();
+        const dateStr = new Date(order.created_at).toLocaleString('lo-LA');
+
+        document.getElementById('receipt-header-info').innerHTML = `ID: #${shortID}<br>Date: ${dateStr}`;
+        document.getElementById('receipt-items').innerHTML = order.items.map(i => `
+            <div class="receipt-row"><span>${i.name} x${i.qty}</span><span>${(i.retail_price * i.qty).toLocaleString()}</span></div>
+        `).join('');
+        document.getElementById('receipt-totals').innerHTML = `<div class="receipt-row"><span>TOTAL</span><span>${order.total_amount.toLocaleString()} LAK</span></div>`;
+
+        JsBarcode("#receipt-barcode", shortID, { format: "CODE128", width: 1.5, height: 40, displayValue: false });
+
+        setTimeout(() => { window.print(); }, 500);
     }
+
+    async function processReturn(orderId) {
+        if (!confirm("ຢືນຢັນການຄືນສິນຄ້າ ແລະ ເພີ່ມສະຕັອກຄືນ?")) return;
+        const btn = document.getElementById(`btn-ret-${orderId}`);
+        btn.disabled = true;
+        btn.innerText = "ກຳລັງປະມວນຜົນ...";
+
+        try {
+            const { data: order, error: fErr } = await _s.from('pos_sales').select('*').eq('id', orderId).single();
+            if (fErr) throw fErr;
+
+            for (const item of order.items) {
+                await _s.rpc('deduct_inventory', { p_barcode: item.barcode, p_qty: -item.qty });
+            }
+
+            const staffName = localStorage.getItem('lsm_user_name') || 'Unknown';
+            await _s.from('pos_sales').update({ status: 'Refunded', return_processed_by: staffName }).eq('id', orderId);
+
+            alert("✅ ຄືນສິນຄ້າສຳເລັດ!");
+            lookupOrder();
+        } catch (err) {
+            alert("Error: " + err.message);
+            btn.disabled = false;
+        }
+    }
+
+    function handleLogout() { localStorage.clear(); window.location.href = 'login.html'; }
 </script>
 </body>
 </html>
